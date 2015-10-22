@@ -96,7 +96,7 @@ table(testish2$predict, testish2$Spam)
 Classify the test set with the function kknn from the package kknn. 
 The confusion matrix for K equal to 5:
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 library(kknn)
 train <- data.frame(train)
 test <- data.frame(test)
@@ -194,6 +194,7 @@ par(mfrow=c(1,1))
 ```
 
 The maximum likelihood is more reliable for larger data sets. 
+
 ### 2.4
 
 ```{r, echo=FALSE}
