@@ -77,6 +77,9 @@ for (i in 1:length(fitted_v)){
 }
 conf_mat <- data.frame(cbind(fitted_v, test[,49]))
 table(conf_mat[,2], conf_mat[,1])
+table(conf_mat)
+table(conf_mat[,1], conf_mat[,2])
+
 
 # 6
 # kknn wfor different decision boundaries
@@ -110,6 +113,36 @@ for (j in phis){
   Knear_class[,h] <- testish$predict
 }
 
+# Computing sensitivity and specificity
+# Adding true labels to kknn and knearest matrices
+classify <- data.frame(classify)
+classify$Spam <- test[,49]
+Knear_class <- data.frame(Knear_class)
+Knear_class$Spam <- test[,49]
+
+sensitivity_kknn <- 0
+specificity_kknn <- 0
+sensitivity_knearest <- 0
+specificity_knearest <- 0
+for (i in 1:19){
+  table_kknn <- table(classify[,20], classify[,i])
+  sensitivity_kknn[i] <- table_kknn[2,2] /sum(table_kknn[,2])
+  specificity_kknn[i] <- table_kknn[1,1] /sum(table_kknn[,1])
+  table_knearest <- table(Knear_class[,20], Knear_class[,i])
+  sensitivity_knearest[i] <- table_knearest[2,2] /sum(table_knearest[,2])
+  specificity_knearest[i] <- table_knearest[1,1] /sum(table_knearest[,1])
+}
+kknn_ROC <- data.frame(cbind(1 - specificity_kknn, sensitivity_kknn))
+knearest_ROC <- data.frame(cbind(1 - specificity_knearest, sensitivity_knearest))
+
+plot(kknn_ROC, type="l", col="blue", xlim=c(0.02,0.2), ylim=c(0.7,0.97),
+     xlab="1-Specificity (false positive rate)", ylab="Sensitivity (True positive rate)",
+     main="ROC curves for kknn and knearest functions")
+lines(knearest_ROC, type="l", col="red")
+legend(0.15,0.9,c("kknn","knearest"),
+lty=c(1,1),
+lwd=c(2.5,2.5),col=c("blue","red"))
+
 
 # Assignment 2
 machine <- read.csv("machines.csv", sep=";", header = TRUE)
@@ -122,6 +155,12 @@ loglike_Theta <- n * log(theta) - theta *sum(machine[,1])
 plot(loglike_Theta, type="l")
 
 theta[which(loglike_Theta==max(loglike_Theta))]
+
+# Zoomed in
+theta_zoom <- seq(1.08, 1.18, by=0.01)
+
+loglike_Theta_zoom <- n * log(theta_zoom) - theta_zoom *sum(machine[,1])
+plot(loglike_Theta_zoom, type="l")
 
 # 3
 # Choose the first 6 observations from data machine
@@ -149,6 +188,13 @@ x <- machine[,1]
 l_theta <- n*log(lambda) + n*log(theta) - n*theta - theta * sum(x)
 plot(l_theta, type="l")
 theta[which(l_theta==max(l_theta))]
+
+theta_try <- seq(0.01, 1000, by=0.01)
+trying <- (0.5*(exp(-0.5*theta_try)*n*log(theta_try) - exp(-0.5*theta_try)*theta_try*sum(x)))
+again <- (n * log(theta_try) - theta_try*sum(x)) * (0.5 * exp(-0.5*theta_try))
+
+plot(again, type="l")
+theta_try[which(trying==max(trying))]
 
 
 # 2.5
