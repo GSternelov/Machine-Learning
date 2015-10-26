@@ -2,13 +2,13 @@
 title: "Introduction to Machine Learning - Lab 1"
 author: "Gustav Sternelöv"
 date: "Thursday, October 22, 2015"
-output: html_document
+output: word_document
 ---
 
 ## Assignment 1
 
 ### 1.1 - 1.2
-To get started with the analysis of the e-mail data file I first divide the data into a train and a test data set. Each data set conatins 50 percent each of the original data set.
+To get started with the analysis of the e-mail data file the data first is divided into a train and a test data set. Each data set conatins 50 percent each of the original data set.
 
 ```{r, echo=FALSE}
 dat <- read.csv("spambase.csv", sep=";", header = TRUE)
@@ -187,13 +187,15 @@ When the decision value for the classification principle is low the *knearest* f
 Looking more closely to the respective lines it can be seen that the red one, *knearest*, only change direction when the decision value reaches 0.2, 0.4, 0.6 and so on. That is related to how the function works when it classifies the e-mails, and apparently there is some difference in how the functions use the information about the five nearest neighbors. 
 
 ## Assignment 2
+In the second assignment a specific type of machine and information about its lifetime is analysed. The main purpose of the analysis is to get more information about the underlying process for the lifetimes of the machines. 
+
 ```{r, echo=FALSE}
 machine <- read.csv("machines.csv", sep=";", header = TRUE)
 ```
 
 ### 2.2
-The x-values in the data set follows the exponential distribution. To investigate the dependence of the log-likelihood on $\Theta$ the log-likelihood is computed for a range of values for $\Theta$. A plot that shows this dependence can be seen to the left where the values for $\Theta$ goes from 0.01 to 5 by steps of 0.01.  
-To find the maximum likelihhod value for $\Theta$ the plot on the right side is used. It is zoomed in and only covers the range of $\Theta$ going from 1.08 to 1.18 by 0.01. By the look of this plot the maximum likelohood value of $\Theta$ seem to lie around 1.11-1.14. 
+The x-values in the data set follows the exponential distribution. To investigate the dependence of the log-likelihood on $\Theta$, the log-likelihood is computed for a range of values for $\Theta$. A plot that shows this dependence can be seen below to the left where the values for $\Theta$ goes from 0.01 to 5 by steps of 0.01.  
+To find the maximum likelihhod value for $\Theta$ the plot on the right side is used. It is zoomed in and only covers the range of $\Theta$ going from 1.08 to 1.18 by 0.01. By the look of this plot the maximum likelohood value of $\Theta$ seem to be 1.13. 
 ```{r, echo=FALSE}
 n <- length(machine[,1])
 theta <- seq(0.01, 5, by=0.01)
@@ -209,7 +211,7 @@ par(mfrow=c(1,1))
 
 
 ### 2.3
-When comparing the log-likelihood curves it is evident that the estimation of the $\Theta$ value is more reliable when more observations are available. The curve recieved when only six observations are used is more smooth which makes it harder to see what the maximum likelihood value of $\Theta$ is. A rough interpretation of the the plot gives that the maximum likelihood value of $\Theta$ lies somewhere around 1.6-1.9. 
+When comparing the log-likelihood curves it is evident that the estimation of the $\Theta$ value is more reliable when more observations are available. The curve recieved when only six observations are used is more smooth which makes it harder to see what the optimal maximum likelihood value of $\Theta$ is. A rough interpretation of the the plot gives that the maximum likelihood value of $\Theta$ lies somewhere around 1.6-1.9. By looking at the exakt value for the log likelihood it is given that the optimal value of $\Theta$ is 1.79. 
 
 ```{r, echo=FALSE}
 machine_six <- data.frame(machine[1:6, 1])
@@ -234,7 +236,7 @@ The plot showing the dependence of l($\Theta$) on $\Theta$ can be seen below, an
 lambda <- 0.5
 theta <- seq(0.6, 1.8, by=0.01)
 x <- machine[,1]
-
+# Is this right?
 l_theta <- theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta))
 plot(l_theta, type="l")
 ```
@@ -252,4 +254,4 @@ hist(R_exp, breaks=8)
 par(mfrow=c(1,1))
 ```
 
-In both histograms a somewhat decaying pattern can be seen, which is typical for values following a exponential distribution. In the original data the frequency decays a bit slower, but in general the data sets seem to be rather similar distributed. Since both the original data and the simulated data this also was the expected result. 
+In both histograms a somewhat decaying pattern can be seen, which is typical for values following a exponential distribution. In the original data the frequency decays a bit slower, but in general the data sets seem to be rather similar distributed. Since both the original data and the simulated data has the same "true" value for the $\Theta$ parameter this also was the expected result. 

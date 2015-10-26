@@ -184,6 +184,7 @@ lambda <- 0.5
 theta <- seq(0.6, 1.8, by=0.01)
 x <- machine[,1]
 
+# Is this right?
 l_theta <- theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta))
 plot(l_theta, type="l")
 theta[which(l_theta==max(l_theta))]
