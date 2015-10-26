@@ -181,10 +181,10 @@ par(mfrow=c(1,1))
 
 # 4
 lambda <- 0.5
-theta <- seq(0.01, 5, by=0.01)
+theta <- seq(0.6, 1.8, by=0.01)
 x <- machine[,1]
 
-l_theta <- log(n) * log(theta) - (theta*sum(x)) * (0.5*exp(-0.5*theta))
+l_theta <- theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta))
 plot(l_theta, type="l")
 theta[which(l_theta==max(l_theta))]
 
