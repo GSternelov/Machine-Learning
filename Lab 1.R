@@ -178,27 +178,19 @@ par(mfrow=c(1,2))
 plot(loglike_Theta, type="l")
 plot(loglike_ThetaSix, type="l")
 par(mfrow=c(1,1))
-# 4
 
+# 4
 lambda <- 0.5
-theta <- seq(0.01, 3, by=0.01)
+theta <- seq(0.01, 5, by=0.01)
 x <- machine[,1]
 
-#l_theta <- log(lambda) + log(theta) - theta*(x+lambda)
-l_theta <- n*log(lambda) + n*log(theta) - n*theta - theta * sum(x)
+l_theta <- log(n) * log(theta) - (theta*sum(x)) * (0.5*exp(-0.5*theta))
 plot(l_theta, type="l")
 theta[which(l_theta==max(l_theta))]
 
-theta_try <- seq(0.01, 1000, by=0.01)
-trying <- (0.5*(exp(-0.5*theta_try)*n*log(theta_try) - exp(-0.5*theta_try)*theta_try*sum(x)))
-again <- (n * log(theta_try) - theta_try*sum(x)) * (0.5 * exp(-0.5*theta_try))
-
-plot(again, type="l")
-theta_try[which(trying==max(trying))]
-
 
 # 2.5
-R_exp <-rexp(50, 0.53)
+R_exp <-rexp(50, 1.13)
 
 par(mfrow=c(1,2))
 hist(machine[,1])

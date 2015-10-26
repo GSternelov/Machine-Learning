@@ -209,6 +209,7 @@ par(mfrow=c(1,1))
 
 
 ### 2.3
+When comparing the log-likelihood curves it is evident that the estimation of the $\Theta$ value is more reliable when more observations are available. The curve recieved when only six observations are used is more smooth which makes it harder to see what the maximum likelihood value of $\Theta$ is. A rough interpretation of the the plot gives that the maximum likelihood value of $\Theta$ lies somewhere around 1.6-1.9. 
 
 ```{r, echo=FALSE}
 machine_six <- data.frame(machine[1:6, 1])
@@ -222,9 +223,27 @@ plot(loglike_ThetaSix, type="l")
 par(mfrow=c(1,1))
 ```
 
-When comparing the log-likelihood curves it is evident that the estimation of the $\Theta$ value is more reliable when more observations are available. The curve recieved when only six observations are used is more smooth which makes it harder to see what the maximum likelihood value of $\Theta$ is. A rough interpretation of the the plot gives that the maximum likelihood value of $\Theta$ lies somewhere around 1.6-1.9. 
 
 ### 2.4
 
+```{r, echo=FALSE}
+lambda <- 0.5
+theta <- seq(0.01, 5, by=0.01)
+x <- machine[,1]
+
+l_theta <- log(n) * log(theta) - (theta*sum(x)) * (0.5*exp(-0.5*theta))
+plot(l_theta, type="l")
+```
+
 
 ### 2.5
+
+```{r, echo=FALSE}
+R_exp <-rexp(50, 1.13)
+
+par(mfrow=c(1,2))
+hist(machine[,1])
+hist(R_exp)
+par(mfrow=c(1,1))
+```
+
