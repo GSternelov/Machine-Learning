@@ -190,9 +190,9 @@ theta[which(l_theta==max(l_theta))]
 
 
 # 2.5
+set.seed(121989)
 R_exp <-rexp(50, 1.13)
-
 par(mfrow=c(1,2))
 hist(machine[,1])
-hist(R_exp)
+hist(R_exp, breaks=8)
 par(mfrow=c(1,1))
