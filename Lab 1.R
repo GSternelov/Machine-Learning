@@ -181,17 +181,16 @@ par(mfrow=c(1,1))
 
 # 4
 lambda <- 0.5
-theta <- seq(0.6, 1.8, by=0.01)
+theta <- seq(0.01, 3, by=0.01)
 x <- machine[,1]
 
-# Is this right?
-l_theta <- theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta))
+l_theta <- log(theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta)))
 plot(l_theta, type="l")
 theta[which(l_theta==max(l_theta))]
 
 
 # 2.5
-set.seed(121989)
+set.seed(12345)
 R_exp <-rexp(50, 1.13)
 par(mfrow=c(1,2))
 hist(machine[,1])

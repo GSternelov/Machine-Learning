@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Machine Learning - Lab 1"
 author: "Gustav Sternelöv"
-date: "Thursday, October 22, 2015"
+date: "Tuesday, October 27, 2015"
 output: word_document
 ---
 
@@ -220,38 +220,221 @@ theta <- seq(0.01, 5, by=0.01)
 loglike_ThetaSix <- n_six * log(theta) + -theta *sum(machine_six[,1])
 
 par(mfrow=c(1,2))
-plot(loglike_Theta, type="l")
-plot(loglike_ThetaSix, type="l")
+plot(loglike_Theta, type="l", main = "Original data")
+plot(loglike_ThetaSix, type="l", main = "First 6 observations")
 par(mfrow=c(1,1))
 ```
 
 
 ### 2.4
 
-The measure computed by this function is the posterior distribution (?).  
-The plot showing the dependence of l($\Theta$) on $\Theta$ can be seen below, and by looking more closely to the values of l($\Theta$) it is concluded that the optimal $\Theta$ is 1.11. That is near the result obtained for $\Theta$ in 2.2, 1.13, and quite far away from the result in 2.3, 1.79.  
-(?) The prior has its value of $\Theta$ set to 0.5 and the "true" value of $\Theta$ for the data is known to be 1.13. When the prior is combined with the observed data the optimal value value for $\Theta$ ends up being almost equal to the true value. 
+The function computed in this step, l($\Theta$) = log($\Theta^n$ * $\mathrm{e}^{\Theta\sum{x_i}}$ * 0.5 $\mathrm{e}^{-0.5\theta}$), measures the log likelihood for the posterior distribution of $\Theta$. In the plot below the dependence of l($\Theta$) on $\Theta$ is illustrated, for the range of $\Theta$ values from 0.01 to 3 by steps of 0.01. The optimal value of $\Theta$ is found to be 1.11, which is close to the result obtained for $\Theta$ in 2.2, 1.13.  
+The difference between the optimal values in 2.2 and 2.4 for $\Theta$ is a result of the prior distribution used in 2.4. The plot below and the plot in 2.2 are almost identical, with the difference that the plot in this step is slightly shifted to the left. This is the effect of the prior distribution. 
 
 ```{r, echo=FALSE}
 lambda <- 0.5
-theta <- seq(0.6, 1.8, by=0.01)
+theta <- seq(0.01, 3, by=0.01)
 x <- machine[,1]
-# Is this right?
-l_theta <- theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta))
+
+l_theta <- log(theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta)))
 plot(l_theta, type="l")
 ```
 
 
 ### 2.5
 
-In step 5 50 new observations are generated from the exponential distribution with the $\Theta$ set to the optimal value found in step 2, 1.13. A comparsion between the histograms for the original data and the new data can be seen below. 
+In step 5, 50 new observations are generated from the exponential distribution with the $\Theta$ set to the optimal value found in step 2, 1.13. A comparsion between the histograms for the original data and the new data can be seen below. 
 ```{r, echo=FALSE}
+set.seed(12345)
 R_exp <-rexp(50, 1.13)
 
 par(mfrow=c(1,2))
-hist(machine[,1],breaks=16)
-hist(R_exp, breaks=8)
+hist(machine[,1],breaks=8, main="Original data")
+hist(R_exp, breaks=12, main = "Simulated data")
 par(mfrow=c(1,1))
 ```
 
 In both histograms a somewhat decaying pattern can be seen, which is typical for values following a exponential distribution. In the original data the frequency decays a bit slower, but in general the data sets seem to be rather similar distributed. Since both the original data and the simulated data has the same "true" value for the $\Theta$ parameter this also was the expected result. 
+
+## Appendix - R-code
+```{r, eval=FALSE}
+# 1
+dat <- read.csv("spambase.csv", sep=";", header = TRUE)
+dat <- as.matrix(dat)
+
+n=dim(dat)[1]
+set.seed(12345)
+id=sample(1:n, floor(n*0.5))
+train=dat[id,]
+test=dat[-id,]
+
+# 1.2
+knearest <- function(data, K,p=0.5 ,newdata){
+  Predict <- 0
+  ProbOne <- 0
+  ProbZero <- 0
+  
+  x <- as.matrix(data[,1:48])
+  y <- as.matrix(newdata[,1:48])
+  x_transformed <- t(apply(x, 1, function(x) x / sqrt(sum(x^2))))
+  x_transformed[is.na(x_transformed)] <- 0
+  y_transformed <- t(apply(y, 1, function(y) y / sqrt(sum(y^2))))
+  y_transformed[is.na(y_transformed)] <- 0
+  
+  numerator <- (x_transformed) %*% t(y_transformed)
+  d_xy <- data.frame(1 - numerator)
+
+  for(i in 1:length(d_xy)){
+    LabelsTrain <- data[order(d_xy[,i]), 49][1:K]
+    ProbOne[i] <- mean(LabelsTrain)
+    ProbZero[i] <- 1-ProbOne[i]
+    if(ProbOne[i] > p){
+      Predict[i] = 1
+    }else{
+      Predict[i] = 0
+    }
+  }
+newdata <- data.frame(newdata)
+newdata$predict <- Predict
+newdata$prob_one <- ProbOne
+newdata$prob_zero <- ProbZero
+return(newdata)
+}
+
+# 1.3
+misc_test <- knearest(train, 5, 0.5, test)
+table(misc_test$predict, misc_test$Spam)
+
+misc_train <- knearest(train, 5, 0.5, train)
+table(misc_train$predict, misc_train$Spam)
+
+# 1.4
+misc_test <- knearest(train, 1, 0.5, test)
+table(misc_test$predict, misc_test$Spam)
+
+misc_train <- knearest(train, 1, 0.5, train)
+table(misc_train$predict, misc_train$Spam)
+
+# 1.5
+library(kknn)
+train <- data.frame(train)
+test <- data.frame(test)
+test_kknn <- kknn(Spam~., train, test, k=5)
+fitted_v <- test_kknn$fitted.values
+for (i in 1:length(fitted_v)){
+if(fitted_v[i] > 0.5 ){
+  fitted_v[i] = 1
+}else{
+  fitted_v[i] = 0
+}
+}
+conf_mat <- data.frame(cbind(fitted_v, test[,49]))
+table(conf_mat[,2], conf_mat[,1])
+
+# 1.6
+train <- data.frame(train)
+test <- data.frame(test)
+test_kknn <- kknn(Spam~., train, test, k=5)
+fitted_v <- test_kknn$fitted.values
+phis <- seq(0.05, 0.95, by=0.05)
+h <- 0
+classify <- matrix(ncol=19, nrow=2301)
+predic <- 0
+
+for (j in phis){
+  for (i in 1:length(fitted_v)){
+    if(fitted_v[i] > j ){
+      predic[i] = 1
+    }else{
+      predic[i] = 0
+    }
+  }
+  h <- h+1
+  classify[,h] <- predic
+}
+
+# For knearest()
+Knear_class <- matrix(ncol=19, nrow=2301)
+h <- 0
+for (j in phis){
+  testish <- knearest(train, 5, p=j, test)
+  h <- h+1
+  Knear_class[,h] <- testish$predict
+}
+
+# Computing sensitivity and specificity
+# Adding true labels to kknn and knearest matrices
+classify <- data.frame(classify)
+classify$Spam <- test[,49]
+Knear_class <- data.frame(Knear_class)
+Knear_class$Spam <- test[,49]
+
+sensitivity_kknn <- 0
+specificity_kknn <- 0
+sensitivity_knearest <- 0
+specificity_knearest <- 0
+for (i in 1:19){
+  table_kknn <- table(classify[,20], classify[,i])
+  sensitivity_kknn[i] <- table_kknn[2,2] /sum(table_kknn[,2])
+  specificity_kknn[i] <- table_kknn[1,1] /sum(table_kknn[,1])
+  table_knearest <- table(Knear_class[,20], Knear_class[,i])
+  sensitivity_knearest[i] <- table_knearest[2,2] /sum(table_knearest[,2])
+  specificity_knearest[i] <- table_knearest[1,1] /sum(table_knearest[,1])
+}
+kknn_ROC <- data.frame(cbind(1 - specificity_kknn, sensitivity_kknn))
+knearest_ROC <- data.frame(cbind(1 - specificity_knearest, sensitivity_knearest))
+
+plot(kknn_ROC, type="l", col="blue", xlim=c(0.02,0.2), ylim=c(0.7,0.97),
+     xlab="1-Specificity (false positive rate)", ylab="Sensitivity (True positive rate)",
+     main="ROC curve for kknn and knearest function")
+lines(knearest_ROC, type="l", col="red")
+legend(0.15,0.9,c("kknn","knearest"),
+lty=c(1,1),
+lwd=c(2.5,2.5),col=c("blue","red"))
+
+# 2
+machine <- read.csv("machines.csv", sep=";", header = TRUE)
+# 2.2
+n <- length(machine[,1])
+theta <- seq(0.01, 5, by=0.01)
+
+loglike_Theta <- n * log(theta) - theta *sum(machine[,1])
+plot(loglike_Theta, type="l")
+
+theta[which(loglike_Theta==max(loglike_Theta))]
+
+theta_zoom <- seq(1.08, 1.18, by=0.01)
+
+loglike_Theta_zoom <- n * log(theta_zoom) - theta_zoom *sum(machine[,1])
+plot(loglike_Theta_zoom, type="l")
+# 2.3 
+machine_six <- data.frame(machine[1:6, 1])
+n_six <- length(machine_six[,1])
+theta <- seq(0.01, 5, by=0.01)
+loglike_ThetaSix <- n_six * log(theta) + -theta *sum(machine_six[,1])
+theta[which(loglike_ThetaSix==max(loglike_ThetaSix))]
+
+par(mfrow=c(1,2))
+plot(loglike_Theta, type="l", main = "Original data")
+plot(loglike_ThetaSix, type="l", main = "First 6 observations")
+par(mfrow=c(1,1))
+
+# 2.4
+lambda <- 0.5
+theta <- seq(0.01, 3, by=0.01)
+x <- machine[,1]
+
+l_theta <- log(theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta)))
+plot(l_theta, type="l")
+theta[which(l_theta==max(l_theta))]
+
+# 2.5
+set.seed(12345)
+R_exp <-rexp(50, 1.13)
+
+par(mfrow=c(1,2))
+hist(machine[,1],breaks=8, main="Original data")
+hist(R_exp, breaks=12, main = "Simulated data")
+par(mfrow=c(1,1))
+```
+
