@@ -152,7 +152,7 @@ n <- length(machine[,1])
 theta <- seq(0.01, 5, by=0.01)
 
 loglike_Theta <- n * log(theta) - theta *sum(machine[,1])
-plot(loglike_Theta, type="l")
+plot(theta,loglike_Theta, type="l")
 
 theta[which(loglike_Theta==max(loglike_Theta))]
 
