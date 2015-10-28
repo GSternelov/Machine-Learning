@@ -188,14 +188,14 @@ When the decision value for the classification principle is low the *knearest* f
 Looking more closely to the respective lines it can be seen that the red one, *knearest*, only change direction when the decision value reaches 0.2, 0.4, 0.6 and so on. That is related to how the function works when it classifies the e-mails, and apparently there is some difference in how the functions use the information about the five nearest neighbors. 
 
 ## Assignment 2
-In the second assignment a specific type of machine and information about its lifetime is analysed. The main purpose of the analysis is to get more information about the underlying process for the lifetimes of the machines. 
+In the second assignment a data set wiht information about the lifetime for a specific type of machine is analysed. The main purpose of the analysis is to get more information about the underlying process for the lifetimes of the machines. 
 
 ```{r, echo=FALSE}
 machine <- read.csv("machines.csv", sep=";", header = TRUE)
 ```
 
 ### 2.2
-Since the probability model for x is equal to $\Theta\mathrm{e}^{\theta x}$, the x-values in the data set follows an exponential distribution. To investigate the dependence of the log-likelihood on $\Theta$, the log-likelihood is computed for a range of values for $\Theta$. A plot that shows this dependence can be seen below to the left where the values for $\Theta$ goes from 0.01 to 5 by steps of 0.01.  
+Since the probability model for x is equal to $\Theta\mathrm{e}^{-\theta x}$, the x-values in the data set follows an exponential distribution. To investigate the dependence of the log-likelihood on $\Theta$, the log-likelihood is computed for a range of values for $\Theta$. A plot that shows this dependence can be seen below to the left where the values for $\Theta$ goes from 0.01 to 5 by steps of 0.01.  
 To find the maximum likelihhod value for $\Theta$ the plot on the right side is used. It is zoomed in and only covers the range of $\Theta$ going from 1.08 to 1.18 by 0.01. By the look of this plot the maximum likelohood value of $\Theta$ seem to be 1.13.  
 
 ```{r, echo=FALSE,fig.height=4}
@@ -205,8 +205,8 @@ theta_zoom <- seq(1.08, 1.18, by=0.01)
 loglike_Theta <- n * log(theta) - theta *sum(machine[,1])
 loglike_Theta_zoom <- n * log(theta_zoom) - theta_zoom *sum(machine[,1])
 par(mfrow=c(1,2))
-plot(loglike_Theta, type="l")
-plot(loglike_Theta_zoom, type="l")
+plot(theta,loglike_Theta, type="l")
+plot(theta_zoom,loglike_Theta_zoom, type="l")
 par(mfrow=c(1,1))
 
 ```
@@ -223,8 +223,8 @@ theta <- seq(0.01, 5, by=0.01)
 loglike_ThetaSix <- n_six * log(theta) + -theta *sum(machine_six[,1])
 
 par(mfrow=c(1,2))
-plot(loglike_Theta, type="l", main = "Original data")
-plot(loglike_ThetaSix, type="l", main = "First 6 observations")
+plot(theta,loglike_Theta, type="l", main = "Original data")
+plot(theta,loglike_ThetaSix, type="l", main = "First 6 observations")
 par(mfrow=c(1,1))
 ```
   
@@ -242,7 +242,7 @@ theta <- seq(0.01, 3, by=0.01)
 x <- machine[,1]
 
 l_theta <- log(theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta)))
-plot(l_theta, type="l")
+plot(theta,l_theta, type="l")
 ```
 
 

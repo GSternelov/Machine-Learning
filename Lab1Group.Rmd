@@ -1,0 +1,480 @@
+---
+title: "Lab 1 - Introduction to Machine Learning"
+author: "Akshaya Balasubramanian, Gustav Sternelöv and Thomas Zhang"
+date: "Wednesday, October 28, 2015"
+output: pdf_document
+---
+
+## Assignment 1
+
+### 1.1 - 1.2
+The spambase data set contains observations of e-mails with columns consisting of the frequencies of 48 words as well as an indicator of whether the observation is a Spam e-mail or not. To start, the spambase data set is divided into a train and a test data set. Each data set contains half of the original data set, where the observations have been randomly divided between the train data set and the test data set.
+```{r, echo=FALSE,message=FALSE}
+library(XLConnect)
+library(kknn)
+
+#You gonna need java 64-bit for rJava and XLConnect to work
+#FROM "THIS FILE LOCATION", EXCEL FILES SHOULD BE FOUND IN A SUBFOLDER IN "THIS FILE LOCATION" CALLED DATA
+wb = loadWorkbook("F:/R_HW/ML/ML-lab-1/data/spambase.xlsx")
+data = readWorksheet(wb, sheet = "spambase_data", header = TRUE)
+
+n=dim(data)[1]
+set.seed(12345)
+id=sample(1:n, floor(n*0.5))
+train=data[id,]
+test=data[-id,]
+```
+
+We wish to pretend as if we did not know whether the observations in the test data set are spam or not spam and that we have to classify them with a k-nearest-neighbor classifier. In order to do this, we use a distance function which, after we first scale the observations, takes into account the similarity of frequencies of words between two e-mail observations by way of calculating the dot product of two rows of the spambase data set (excluding the last column). Thus, the dot/cosine product distances between the observations are calculated and used to implement a k-nearest-neighbor classifier, called *knearest*. The distance function is given by 1 - c(X,Y) where c(X,Y), the cosine product, is defined as:  
+$$ X^T Y \over \sqrt{\sum_{i=1}X_i^2}\sqrt{\sum_{i=1}Y_i^2} $$
+In the spambase data set, there are rows with only zeros in all frequencies of words. these observations lie equidistant from all others and we simply delete them (while keeping in mind which rows they were).
+The code for the knearest function can be seen in the appendix. 
+
+```{r, echo=FALSE,eval=TRUE}
+knearest <- function(data, k, newdata){
+  
+  dataspamindicator <- data$Spam
+  data <- as.matrix(data)
+  data <- data[,-ncol(data),drop=FALSE]
+
+
+  # find out which data rows are the zero vector
+  datazerorows <-rep(TRUE,nrow(data))
+  for(g in 1:nrow(data)){
+    if(sum(data[g,]) == 0){
+      datazerorows[g] <- FALSE
+    }  
+  }
+  
+  data <- data[datazerorows,]
+  dataspamindicator <- dataspamindicator[datazerorows]
+  
+  newdata <- as.matrix(newdata)
+  newdata <- newdata[,-ncol(newdata),drop=FALSE]
+  
+  # find out which newdata rows are the zero vector
+  newdatazerorows <-rep(TRUE,nrow(newdata))
+  for(p in 1:nrow(newdata)){
+    if(sum(newdata[p,]) == 0){
+      newdatazerorows[p] <- FALSE
+    }  
+  }
+
+  newdata <- newdata[newdatazerorows,]
+
+  nearness <- matrix(0,k, as.numeric(nrow(newdata)))
+  
+  for(j in 1:nrow(newdata)){
+    distancesfromj <- rep(0,nrow(data))
+    for(i in 1:nrow(data)){
+      normalizing <- sqrt(sum(data[i,]^2)) * sqrt(sum(newdata[j,]^2)) 
+      result <- newdata[j,] %*% data[i,] / normalizing
+      dist <- 1 - result
+      
+      distancesfromj[i] <- dist
+    }
+    distancesfromj <- sort(distancesfromj, index.return = TRUE)
+    nearness[,j] <- distancesfromj$ix[1:k]
+  }
+  
+  nearness <- t(nearness)
+  predictedclassprobsfornewdata <- rep(0,nrow(nearness))
+  for(m in 1:nrow(nearness)){
+    predictedclassprobsfornewdata[m] <- sum(dataspamindicator[nearness[m,1:k]]) / k
+  }
+  
+  return(list(predicted = predictedclassprobsfornewdata, deletedrows = newdatazerorows))
+}
+
+knn5 <- knearest(train,5,test)
+knn1 <- knearest(train,1,test)
+```
+
+### 1.3-1.4
+The implemented k-nearest-neighbor classifier returned the predicted probabilities of the test data observations being Spam e-mails, as well as which rows were deleted because they contained only zeros. The classification principle that decides how to classify each e-mail based upon its predicted probability of being Spam is stated as following:  
+
+$\hat{y} = 1$ if p (Y = 1|X) > 0.5, otherwise $\hat{y} = 0$.
+
+With K, the number of neighbors, set to 5 the confusion matrix generated from classifying the test data and the misclassification rate for the test data looks like this:  
+```{r, echo=FALSE,eval=TRUE}
+tabularize<-function(knn,decider,newdata){
+  classified_by_knn <- rep(0,length(knn$predicted))
+  for(u in 1:length(knn$predicted)){
+    if(knn$predicted[u] > decider){
+      classified_by_knn[u] <- 1
+    }
+  }
+  testdataspam <-newdata$Spam[knn$deletedrows]
+  
+  tab <- table(Truth = testdataspam,classified_by_knn)
+  return(tab)  
+}
+
+tab <- tabularize(knn5,.5,test)
+print(tab)
+paste("Misclassification rate:",round(1-sum(diag(tab))/sum(tab),4),sep=" ")
+```
+
+For the classification of the e-mails in the test data set using number of neighbours $K = 1$ we obtained confusion matrix and and the misclassification rate
+```{r, echo=FALSE,eval=TRUE}
+tab <- tabularize(knn1,.5,test)
+print(tab)
+paste("Misclassification rate:",round(1-sum(diag(tab))/sum(tab),4),sep=" ")
+```
+
+### 1.5
+When the function *kknn* from the package **kknn** is used to classify the e-mails with the k-nearest-neighbor method, the following results are obtained. 
+K is set to 5 and for the test data the confusion matrix looks like this:
+```{r, echo=FALSE}
+kknndata <- kknn( Spam ~. , train, test ,k = 5)
+
+#str(kknndata)
+
+tabularizekknn<-function(kknndata,decider){
+  classified_by_kknn <- rep(0,length(kknndata$fitted.values))
+  for(v in 1:length(kknndata$fitted.values)){
+    if(kknndata$fitted.values[v] > decider){
+      classified_by_kknn[v] <- 1
+      }
+  }
+  truth <- test$Spam
+  tab <- table(Truth = truth,classified_by_kknn)
+  return(tab)
+}
+
+
+tab <- tabularizekknn(kknndata,0.5)
+print(tab)
+paste("Misclassification rate:",round(1-sum(diag(tab))/sum(tab),4),sep=" ")
+```
+When comparing with the *knearest* function it seems *knearest* performs slightly better than the *kknn* function. 
+
+### 1.6
+The sensitivity and specificity is computed for both the *knearest* and the *kknn* function. For each classification for the respective methods the sensitivity and specificity is computed according to the following formulas.  
+$$ Sensitivity = \dfrac{True Positive}{All Positive} $$  
+$$ Specificity = \dfrac{True Negative}{All Negative} $$
+
+The ROC curve is the TPR plotted against the FPR where FPR = 1-Specificity.
+The ROC for both models with $K=5$ are fitted and plotted in a graph.
+
+```{r, echo=FALSE,eval=TRUE, fig.pos="center"}
+#ROC is TPR tp/(tp +fn) against FPR fp/(fp + tn) FPR = 1 - Specificity
+#Sensitivity is TPR, specificity is TNR tn/(tn + fp)
+
+pi <- seq(0.05, 0.95, by=0.05)
+
+collect<-function(pi,knn,kknndata,newdata){
+    collector <-matrix(0,19,4)
+    for(b in 1:length(pi)){
+      target <- tabularize(knn,pi[b],newdata)
+      target2 <- tabularizekknn(kknndata,pi[b])
+      collector[b,1:2] <- c(target[2,2] / ( target[2,2] + target[2,1]) , target[1,1] / (target[1,1] + target[1,2]))
+      collector[b,3:4] <- c(target2[2,2] / ( target2[2,2] + target2[2,1]) , target2[1,1] / (target2[1,1] + target2[1,2]))
+      
+    }
+    return(collector)
+}
+
+plotthis <- collect(pi,knn5,kknndata,test)
+
+
+kknn_ROC <- data.frame(cbind(1 - plotthis[,4], plotthis[,3]))
+knearest_ROC <- data.frame(cbind(1 - plotthis[,2], plotthis[,1]))
+
+plot(kknn_ROC, type="l", col="blue", xlim=c(0.02,0.3), ylim=c(0.6,0.97),
+     xlab="1-Specificity (false positive rate)", ylab="Sensitivity (True positive rate)",
+     main="ROC curve for kknn and knearest function")
+lines(knearest_ROC, type="l", col="red")
+legend(0.15,0.9,c("kknn","knearest"),
+       lty=c(1,1),
+       lwd=c(2.5,2.5),col=c("blue","red"))
+
+```
+
+Some conclusions about the ROC curves is that both models seem to be pretty good classifiers of spam and non-spam e-mails. There are no major differences between the models, but the knearest classifier seems to be a little more aggressive than the kknn classifier
+as interpreted by the higher sensitvity it is capable of in return for having a lower possible specificity. A trade-off in these two characteristics seems likely. the ROC curve shows that when the decision value for the classification principle is low (high sensitvity) the *knearest* function performs better and for high decision values (low sensitivity) the *kknn* function performs a little bit better.
+
+Looking more closely at the respective lines it can be seen that the red one, *knearest*, only change direction when the decision value reaches 0.2, 0.4, 0.6 and so on. That is because those are the only possible preditced probabilites when $K=5$ in *knearest*. Apparently there is some difference in how the classifiers use the information about the five nearest neighbors.  
+
+## Assignment 2
+In the second assignment a data set wiht information about the lifetime for a specific type of machine is analysed. The main purpose of the analysis is to get more information about the underlying process for the lifetimes of the machines. 
+
+```{r, echo=FALSE}
+machine <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/machines.csv", sep=";", header = TRUE)
+```
+
+### 2.2
+Since the probability model for x is equal to $\Theta\mathrm{e}^{-\theta x}$, the x-values in the data set follows an exponential distribution. A loglikelihood function for the outcome $x$ is in this case given by 
+$$f(\theta) = n \ln{\theta} - \theta n \bar{x} $$
+where $\bar{x}$ is the sample mean of lifetime lengths $x_{i}$ and $n$ is the number of lifetime lengths in $x$.  
+To investigate the dependence of the log-likelihood on $\Theta$, the log-likelihood is computed for a range of values for $\Theta$. A plot that shows this dependence can be seen below to the left where the values for $\Theta$ goes from 0.01 to 5 by steps of 0.01.  
+To find the maximum likelihhod value for $\Theta$ the plot on the right side is used. It is zoomed in and only covers the range of $\Theta$ going from 1.08 to 1.18 by 0.01. By the look of this plot the maximum likelohood value of $\Theta$ seem to be 1.13.  
+
+```{r, echo=FALSE,fig.height=4}
+n <- length(machine[,1])
+theta <- seq(0.01, 5, by=0.01)
+theta_zoom <- seq(1.08, 1.18, by=0.01)
+loglike_Theta <- n * log(theta) - theta *sum(machine[,1])
+loglike_Theta_zoom <- n * log(theta_zoom) - theta_zoom *sum(machine[,1])
+par(mfrow=c(1,2))
+plot(theta,loglike_Theta, type="l")
+plot(theta_zoom,loglike_Theta_zoom, type="l")
+par(mfrow=c(1,1))
+
+```
+
+
+### 2.3
+In the third step of assignment 2 the former step is repeated, but this time only for the first 6 observations in the data set. The dependence of log likelihood on $\theta$ for the case when only the first 6 observations are used and when the whole data set is used is plotted by the graphs below.  
+
+
+```{r, echo=FALSE,fig.height=4}
+machine_six <- data.frame(machine[1:6, 1])
+n_six <- length(machine_six[,1])
+theta <- seq(0.01, 5, by=0.01)
+loglike_ThetaSix <- n_six * log(theta) + -theta *sum(machine_six[,1])
+
+plot(theta,loglike_Theta, type="l", main = c("Log-Likelihood function", 
+                  "First 6 obs (red line) vs original data(black line)"), ylim=c(-200, 0))
+lines(theta, loglike_ThetaSix, col="red")
+
+```
+  
+  
+When comparing the log-likelihood curves it is evident that the estimation of the $\Theta$ value is more reliable when more observations are available. The curve recieved when only 6 observations are used varies less in value which makes it harder to see what the optimal maximum likelihood value of $\Theta$ is. A rough interpretation of the the plot gives that the maximum likelihood value of $\Theta$ lies somewhere around 1.6-1.9. By looking at the exakt value for the log likelihood it is given that the optimal value of $\Theta$ is 1.79. This value is far from the optimal value given when the whole data set is used, 1.13, and therefore is a good illustration to why the maximum likelihood solution is more unreliable for small data sets.  
+
+### 2.4
+
+The function computed in this step, l($\Theta$) = log($\Theta^n$ * $\mathrm{e}^{-\Theta\sum{x_i}}$ * 0.5 $\mathrm{e}^{-0.5\theta}$), measures the log likelihood for the posterior distribution of $\Theta$. In the plot below the dependence of l($\Theta$) on $\Theta$ is illustrated, for the range of $\Theta$ values from 0.01 to 3 by steps of 0.01. The optimal value of $\Theta$ is found to be 1.11, which is close to the result obtained for $\Theta$ in 2.2, 1.13.  
+The difference between the optimal values in 2.2 and 2.4 for $\Theta$ is a result of the prior distribution used in 2.4. The plot below and the plot in 2.2 are almost identical, with the difference that the plot in this step is slightly shifted to the left. This is the effect of the prior distribution for $\Theta$. 
+
+```{r, echo=FALSE, fig.width=4, fig.height=4}
+lambda <- 0.5
+theta <- seq(0.01, 3, by=0.01)
+x <- machine[,1]
+
+l_theta <- log(theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta)))
+plot(theta,l_theta, type="l")
+```
+
+
+### 2.5
+
+In step 5, 50 new observations are generated from the exponential distribution with the $\Theta$ set to the optimal value found in step 2, 1.13. A comparsion between the histograms for the original data and the new data can be seen below.  
+
+```{r, echo=FALSE,fig.height=4}
+set.seed(12345)
+R_exp <-rexp(50, 1.13)
+
+par(mfrow=c(1,2))
+hist(machine[,1],breaks=8, main="Original data")
+hist(R_exp, breaks=12, main = "Simulated data")
+par(mfrow=c(1,1))
+```
+
+In both histograms a somewhat decaying pattern can be seen, which is typical for values following a exponential distribution. In the original data the frequency decays a bit slower, but in general the data sets seem to be rather similar distributed. Since both the original data and the simulated data has the same "true" value for the $\Theta$ parameter this also was the expected result. 
+
+## Group members contribution
+The first assignment was mainly compiled by Thomas, with some help from Gustav. The second assignment was mainly compiled by Gustav and Akhsaya, with some help from Thomas.
+The R-code for the first assignment is almost all Thomas', for the second assignment Gustavs and Akhsayas R-code has been used. 
+
+## Appendix - R-code
+```{r,eval=FALSE}
+library(XLConnect)
+library(kknn)
+
+
+wb = loadWorkbook("data/spambase.xlsx")
+data = readWorksheet(wb, sheet = "spambase_data", header = TRUE)
+
+n=dim(data)[1]
+set.seed(12345)
+id=sample(1:n, floor(n*0.5))
+train=data[id,]
+test=data[-id,]
+
+
+knearest <- function(data, k, newdata){
+  
+  dataspamindicator <- data$Spam
+  data <- as.matrix(data)
+  data <- data[,-ncol(data),drop=FALSE]
+
+
+  # find out which data rows are the zero vector
+  datazerorows <-rep(TRUE,nrow(data))
+  for(g in 1:nrow(data)){
+    if(sum(data[g,]) == 0){
+      datazerorows[g] <- FALSE
+    }  
+  }
+  
+  data <- data[datazerorows,]
+  dataspamindicator <- dataspamindicator[datazerorows]
+  
+  newdata <- as.matrix(newdata)
+  newdata <- newdata[,-ncol(newdata),drop=FALSE]
+  
+  # find out which newdata rows are the zero vector
+  newdatazerorows <-rep(TRUE,nrow(newdata))
+  for(p in 1:nrow(newdata)){
+    if(sum(newdata[p,]) == 0){
+      newdatazerorows[p] <- FALSE
+    }  
+  }
+
+  newdata <- newdata[newdatazerorows,]
+
+  nearness <- matrix(0,k, as.numeric(nrow(newdata)))
+  
+  for(j in 1:nrow(newdata)){
+    distancesfromj <- rep(0,nrow(data))
+    for(i in 1:nrow(data)){
+      normalizing <- sqrt(sum(data[i,]^2)) * sqrt(sum(newdata[j,]^2)) 
+      result <- newdata[j,] %*% data[i,] / normalizing
+      dist <- 1 - result
+      
+      distancesfromj[i] <- dist
+    }
+    distancesfromj <- sort(distancesfromj, index.return = TRUE)
+    nearness[,j] <- distancesfromj$ix[1:k]
+  }
+  
+  nearness <- t(nearness)
+  predictedclassprobsfornewdata <- rep(0,nrow(nearness))
+  for(m in 1:nrow(nearness)){
+    predictedclassprobsfornewdata[m] <- sum(dataspamindicator[nearness[m,1:k]]) / k
+  }
+  
+  return(list(predicted = predictedclassprobsfornewdata, deletedrows = newdatazerorows))
+}
+
+#summarizing results with decision line p=0.5
+
+knn5 <- knearest(train,5,test)
+knn1 <- knearest(train,1,test)
+
+tabularize<-function(knn,decider,newdata){
+  classified_by_knn <- rep(0,length(knn$predicted))
+  for(u in 1:length(knn$predicted)){
+    if(knn$predicted[u] > decider){
+      classified_by_knn[u] <- 1
+    }
+  }
+  testdataspam <-newdata$Spam[knn$deletedrows]
+  
+  tab <- table(Truth = testdataspam,classified_by_knn)
+  return(tab)  
+}
+
+tab <- tabularize(knn5,.5,test)
+print(tab)
+paste("Misclassification rate:",round(1-sum(diag(tab))/sum(tab),4),sep=" ")
+
+tab <- tabularize(knn1,.5,test)
+print(tab)
+paste("Misclassification rate:",round(1-sum(diag(tab))/sum(tab),4),sep=" ")
+
+kknndata <- kknn( Spam ~. , train, test ,k = 5)
+
+#str(kknndata)
+
+tabularizekknn<-function(kknndata,decider){
+  classified_by_kknn <- rep(0,length(kknndata$fitted.values))
+  for(v in 1:length(kknndata$fitted.values)){
+    if(kknndata$fitted.values[v] > decider){
+      classified_by_kknn[v] <- 1
+      }
+  }
+  truth <- test$Spam
+  tab <- table(Truth = truth,classified_by_kknn)
+  return(tab)
+}
+
+
+tab <- tabularizekknn(kknndata,0.5)
+print(tab)
+paste("Misclassification rate:",round(1-sum(diag(tab))/sum(tab),4),sep=" ")
+
+#summary(kknndata)
+
+#ROC is TPR tp/(tp +fn) against FPR fp/(fp + tn) FPR = 1 - Specificity
+#Sensitivity is TPR, specificity is TNR tn/(tn + fp)
+
+pi <- seq(0.05, 0.95, by=0.05)
+
+collect<-function(pi,knn,kknndata,newdata){
+    collector <-matrix(0,19,4)
+    for(b in 1:length(pi)){
+      target <- tabularize(knn,pi[b],newdata)
+      target2 <- tabularizekknn(kknndata,pi[b])
+      collector[b,1:2] <- c(target[2,2] / ( target[2,2] + target[2,1]) ,
+                            target[1,1] / (target[1,1] + target[1,2]))
+      collector[b,3:4] <- c(target2[2,2] / ( target2[2,2] + target2[2,1]) ,
+                            target2[1,1] / (target2[1,1] + target2[1,2]))
+      
+    }
+    return(collector)
+}
+
+plotthis <- collect(pi,knn5,kknndata,test)
+
+
+kknn_ROC <- data.frame(cbind(1 - plotthis[,4], plotthis[,3]))
+knearest_ROC <- data.frame(cbind(1 - plotthis[,2], plotthis[,1]))
+
+plot(kknn_ROC, type="l", col="blue", xlim=c(0.02,0.3), ylim=c(0.6,0.97),
+     xlab="1-Specificity (false positive rate)", ylab="Sensitivity (True positive rate)",
+     main="ROC curve for kknn and knearest function")
+lines(knearest_ROC, type="l", col="red")
+legend(0.15,0.9,c("kknn","knearest"),
+       lty=c(1,1),
+       lwd=c(2.5,2.5),col=c("blue","red"))
+# 2
+machine <- read.csv("machines.csv", sep=";", header = TRUE)
+# 2.2
+n <- length(machine[,1])
+theta <- seq(0.01, 5, by=0.01)
+
+loglike_Theta <- n * log(theta) - theta *sum(machine[,1])
+plot(loglike_Theta, type="l")
+
+theta[which(loglike_Theta==max(loglike_Theta))]
+
+theta_zoom <- seq(1.08, 1.18, by=0.01)
+
+loglike_Theta_zoom <- n * log(theta_zoom) - theta_zoom *sum(machine[,1])
+plot(loglike_Theta_zoom, type="l")
+# 2.3 
+machine_six <- data.frame(machine[1:6, 1])
+n_six <- length(machine_six[,1])
+theta <- seq(0.01, 5, by=0.01)
+loglike_ThetaSix <- n_six * log(theta) + -theta *sum(machine_six[,1])
+theta[which(loglike_ThetaSix==max(loglike_ThetaSix))]
+
+par(mfrow=c(1,2))
+plot(loglike_Theta, type="l", main = "Original data")
+plot(loglike_ThetaSix, type="l", main = "First 6 observations")
+par(mfrow=c(1,1))
+
+# 2.4
+lambda <- 0.5
+theta <- seq(0.01, 3, by=0.01)
+x <- machine[,1]
+
+l_theta <- log(theta^n * exp(-theta*sum(x)) * (0.5*exp(-0.5*theta)))
+plot(l_theta, type="l")
+theta[which(l_theta==max(l_theta))]
+
+# 2.5
+set.seed(12345)
+R_exp <-rexp(50, 1.13)
+
+par(mfrow=c(1,2))
+hist(machine[,1],breaks=8, main="Original data")
+hist(R_exp, breaks=12, main = "Simulated data")
+par(mfrow=c(1,1))
+```
+
+
+
