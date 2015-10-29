@@ -6,16 +6,27 @@ library(MASS)
 data(longley)
 data <- longley
 
-longley.x <- data.matrix(longley[, 1:6])
+longley.xx <- data.matrix(longley[, 1:6])
 longley.y <- longley[, "Employed"]
 
+longley.y <- longley.y - mean(longley.y)
+for(i in 1:6){
+  longley.x[,i] <- longley.x[,i] - mean(longley.x[,i]) 
+  
+}
+
 # Implement ridgereg function
-ridgereg <- function(x, y, lambda, nfolds){
+ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   # Create the folds and initialize CV vector
-  folds <- cut(seq(1,nrow(x)),breaks=nfolds,labels=FALSE)
-  CV <- 0
-  #Perform 10 fold cross validation and extract the train and test data for every step. 
-  for(i in 1:10){
+  n <- length(y)
+  seques <- floor(n/nfolds)
+  reps <- n%%nfolds
+  groups <- rep(seq(1,nfolds, 1), seques)
+  end_values <- rep(nfolds, reps)
+  
+  folds <- c(groups, end_values)
+  folds <- sort(folds) 
+  for (i in 1:nfolds){
     testIndexes <- which(folds==i,arr.ind=TRUE)
     testData_x <- x[testIndexes, ]
     testData_y <- y[testIndexes]
@@ -32,11 +43,11 @@ ridgereg <- function(x, y, lambda, nfolds){
     # Calculates CV
     CV[i] <- sum((testData_y - y_hat_test)^2)
   }
-  CV_score <- (1/nrow(x)) * sum(CV)
+  CV_score <- (1/nrow(longley.x)) * sum(CV)
   return(CV_score)
 }
-for (i in 1:7){
-  print(ridgereg(longley.x, longley.y, lambda=i, nfolds=10))
+for (i in 1:100){
+  print(ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10))
 }
 
 # Assignment 2
@@ -68,7 +79,6 @@ Protein_test <- test$Protein
 Moisture_test <- test$Moisture
 
 poly_modelTrain <- list()
-poly_modelTest <- list()
 MSE_train <- 0
 MSE_test <- 0
 
@@ -79,8 +89,6 @@ y_hat_test <- predict(lm(Moisture_train ~ poly(Protein_train, i)), data.frame(Pr
 MSE_test[i] <- 1/length(Moisture_test)  * sum((y_hat_test-Moisture_test)^2)
 }
 
-hej <- lm(Moisture_train ~ poly(Protein_train, 2, raw=TRUE))
-hej$
 
 plot(1:6, MSE_train, type="l", ylim=c(30,35), col="blue")
 lines(1:6, MSE_test, type="l", col="red")
@@ -93,26 +101,39 @@ for (i in 1:6){
   RSS <- sum(poly_modelTrain[[i]]$residuals^2)  
   AIC[i] <- 2*(i+1) + n * log(RSS/n)
 }
+
 # 2.5
 vars <- data.frame(tecator[,2:102])
 
 FullModel <- lm(Fat ~ ., data=vars)
-Step_selec <- stepAIC(FullModel)
+Step_selec <- stepAIC(FullModel, direction = "both")
 Step_selec$coefficients
 
-# 2.6
-ridgeReg <- list()
-for (i in 1:11){
-  ridgeReg[[i]] <- lm.ridge(Fat ~ ., data=vars, lambda = i-1) 
-  plot(ridgeReg[[1:11]]$coef[1], type="l")
-  lines(ridgeReg[[2]]$coef, type="l")
-  lines(ridgeReg[[3]]$coef, type="l")
-}
 
-# Something like the sum of coefficients??
-
-# 2.7
+# 2.6 - 2.7
 library(glmnet)
+# Create matrix with x variables 
+mat_vars <- as.matrix(vars[,1:100])
+# y variable
+mat_y <- as.matrix(vars[,101])
+
+ridge_mod <- glmnet(mat_vars, mat_y, alpha=0, family = "gaussian")
+plot(ridge_mod, xvar="lambda",label=TRUE)
+
+lasso_mod <- glmnet(mat_vars, mat_y, alpha=1, family = "gaussian")
+plot(lasso_mod, xvar="lambda",label=TRUE)
+
+# 2.8
+set.seed(12345)
+lasso_cv <- cv.glmnet(mat_vars, mat_y, alpha=1, family = "gaussian")
+
+lasso_cv$lambda.min
+plot(lasso_cv)
+coef(lasso_cv, s = "lambda.min")
+
+lasso_cv$cvm
+
+# # # # # # #
 
 
 

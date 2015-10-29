@@ -1,0 +1,60 @@
+---
+title: "Introduction to Machine Learning - Lab 2"
+author: "Gustav Sternelöv"
+date: "Thursday, October 29, 2015"
+output: pdf_document
+---
+
+## Assignment 1
+### 1.1
+The function *ridgereg_nfoldCV* which does ridge regression by using n-fold cross validation is implemented at the first step of assignment 1. The R-code used to create the function can be seen below. 
+```{r 1.1,eval=FALSE}
+ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
+  # Create the folds and initialize CV vector
+  n <- length(y)
+  seques <- floor(n/nfolds)
+  reps <- n%%nfolds
+  groups <- rep(seq(1,nfolds, 1), seques)
+  end_values <- rep(nfolds, reps)
+  
+  folds <- c(groups, end_values)
+  folds <- sort(folds) 
+  for (i in 1:nfolds){
+    testIndexes <- which(folds==i,arr.ind=TRUE)
+    testData_x <- x[testIndexes, ]
+    testData_y <- y[testIndexes]
+    trainData_x <- x[-testIndexes, ]
+    trainData_y <- y[-testIndexes]
+    
+    # Perform ridge regression on train data
+    x_t <- t(trainData_x)
+    I <- diag(ncol(trainData_x))
+    BetaRidge <- solve(x_t %*% trainData_x + lambda * I) %*% x_t %*% trainData_y
+    #y_hat <- trainData_x %*% BetaRidge
+    # Test regression on test data and compare with true values for test data
+    y_hat_test <- testData_x %*% BetaRidge
+    # Calculates CV
+    CV[i] <- sum((testData_y - y_hat_test)^2)
+  }
+  CV_score <- (1/nrow(longley.x)) * sum(CV)
+  return(CV_score)
+}
+```
+
+### 1.2
+The function implemented in 1.2 is tested with the  
+```{r 1.2, echo=FALSE, eval=FALSE}
+data(longley)
+data <- longley
+
+longley.xx <- data.matrix(longley[, 1:6])
+longley.y <- longley[, "Employed"]
+
+longley.y <- longley.y - mean(longley.y)
+for(i in 1:6){
+  longley.x[,i] <- longley.x[,i] - mean(longley.x[,i]) 
+  
+}
+```
+
+
