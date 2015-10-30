@@ -6,7 +6,7 @@ library(MASS)
 data(longley)
 data <- longley
 
-longley.xx <- data.matrix(longley[, 1:6])
+longley.x <- data.matrix(longley[, 1:6])
 longley.y <- longley[, "Employed"]
 
 longley.y <- longley.y - mean(longley.y)
@@ -23,9 +23,11 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   reps <- n%%nfolds
   groups <- rep(seq(1,nfolds, 1), seques)
   end_values <- rep(nfolds, reps)
-  
   folds <- c(groups, end_values)
   folds <- sort(folds) 
+  
+  x <- cbind(rep(1, nrow(x)), x)
+  CV <- 0
   for (i in 1:nfolds){
     testIndexes <- which(folds==i,arr.ind=TRUE)
     testData_x <- x[testIndexes, ]
@@ -43,10 +45,10 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
     # Calculates CV
     CV[i] <- sum((testData_y - y_hat_test)^2)
   }
-  CV_score <- (1/nrow(longley.x)) * sum(CV)
+  CV_score <- (1/nfolds) * sum(CV)
   return(CV_score)
 }
-for (i in 1:100){
+for (i in 1:7){
   print(ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10))
 }
 
@@ -95,11 +97,15 @@ lines(1:6, MSE_test, type="l", col="red")
 
 # 2.4
 AIC <- 0
+AIC2 <- 0
+AIC3 <- 0
 for (i in 1:6){
-  poly_modelTrain[[i]] <-  lm(Moisture_train ~ poly(Protein_train, i, raw=TRUE))
-  n <- length(Moisture_train)
+  poly_modelTrain[[i]] <-  lm(tecator$Moisture ~ poly(tecator$Protein, i, raw=TRUE))
+  n <- length(tecator$Moisture)
   RSS <- sum(poly_modelTrain[[i]]$residuals^2)  
   AIC[i] <- 2*(i+1) + n * log(RSS/n)
+  AIC2[i] <- extractAIC(poly_modelTrain[[i]])[2]
+  AIC3[i] <- AIC(poly_modelTrain[[i]])
 }
 
 # 2.5
@@ -107,7 +113,8 @@ vars <- data.frame(tecator[,2:102])
 
 FullModel <- lm(Fat ~ ., data=vars)
 Step_selec <- stepAIC(FullModel, direction = "both")
-Step_selec$coefficients
+summary(Step_selec)
+length(Step_selec$coefficients)
 
 
 # 2.6 - 2.7
@@ -134,6 +141,3 @@ coef(lasso_cv, s = "lambda.min")
 lasso_cv$cvm
 
 # # # # # # #
-
-
-
