@@ -9,11 +9,7 @@ data <- longley
 longley.x <- data.matrix(longley[, 1:6])
 longley.y <- longley[, "Employed"]
 
-longley.y <- longley.y - mean(longley.y)
-for(i in 1:6){
-  longley.x[,i] <- longley.x[,i] - mean(longley.x[,i]) 
-  
-}
+longley.x <- scale(longley.x, center=TRUE, scale=FALSE)
 
 # Implement ridgereg function
 ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
@@ -51,7 +47,6 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
 for (i in 1:7){
   print(ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10))
 }
-
 # Assignment 2
 # 2.1
 tecator <- read.csv("Lab 2/tecator.csv", sep=";", header = TRUE)

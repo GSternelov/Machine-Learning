@@ -10,7 +10,7 @@ output:
 
 ## Assignment 1
 ### 1.1
-The function *ridgereg_nfoldCV* which does ridge regression by using n-fold cross validation is implemented at the first step of assignment 1. The R-code used to create the function can be seen below. 
+The function *ridgereg_nfoldCV* which performs ridge regression by using n-fold cross validation is implemented at the first step of assignment 1. The R-code used to create the function can be seen below. 
 ```{r 1.1,eval=TRUE}
 ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   # Create the folds and initialize CV vector
@@ -35,7 +35,6 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
     x_t <- t(trainData_x)
     I <- diag(ncol(trainData_x))
     BetaRidge <- solve(x_t %*% trainData_x + lambda * I) %*% x_t %*% trainData_y
-    #y_hat <- trainData_x %*% BetaRidge
     # Test regression on test data and compare with true values for test data
     y_hat_test <- testData_x %*% BetaRidge
     # Calculates CV
@@ -48,7 +47,7 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
 ```
 
 ### 1.2
-The function implemented in 1.2 is tested with the longley data set. Number of folds is set to 10 and the value for lambda goes from 1 to 7, by 1. The given values for the CV score is shown in the following table and it can be seen that the CV score decreases for higher values of lambda. 
+The function implemented in 1.2 is tested with the longley data set. The predictor variables has been centered, but not scaled. Number of folds is set to 10 and the value for lambda goes from 1 to 7, by 1. The given values for the CV score is shown in the following table and it can be seen that the CV score increases for higher values of lambda. The conclusion from this result is that the best model is given with lambda set to 1.
 ```{r 1.2, echo=FALSE, eval=TRUE}
 library(MASS)
 data(longley)
@@ -57,30 +56,30 @@ data <- longley
 longley.x <- data.matrix(longley[, 1:6])
 longley.y <- longley[, "Employed"]
 
-longley.y <- longley.y - mean(longley.y)
-for(i in 1:6){
-  longley.x[,i] <- longley.x[,i] - mean(longley.x[,i]) 
-  
-}
+longley.x <- scale(longley.x, center=TRUE, scale=FALSE)
+
 for (i in 1:7){
   print(ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=5))
 }
 ```
 
 ## Assignment 2
+In the second assignment the data material called *tecator* is used. This file contains information from a study where...  
+
 ### 2.1
 ```{r, echo=FALSE}
 tecator <- read.csv("tecator.csv", sep=";", header = TRUE)
 
 plot(tecator$Protein, tecator$Moisture)
 ```
-To describe moisture with protein data with a linear model may be an appopriate approach by the look of the plot.  
+To use a linear model to describe the levels of moisture with the levels of protein may be an appopriate approach by the look of the plot.  
 
 ### 2.2
 A Probabilistic model...
   
 ### 2.3
-The data set is divided into a training set and a validation set where each set contains 50 percent of the observations.  
+For exercise 2.3 the data set is divided into a training set and a validation set where each set contains 50 percent of the observations.  
+For models with polynomials of higher power the MSE for test data in general increases, and for training data it decreases. The best model for training data in terms of MSE is the, probably overfitted, model with polynomial terms up to a power of 6. This can be compared to the the test data which has the lowest MSE for a simple linear model. In terms of the bias/variance trade-off the plot an interpretation of the plot can be that...
 
 ```{r, echo=FALSE}
 n=dim(tecator)[1]
@@ -113,7 +112,7 @@ lines(1:6, MSE_test, type="l", col="red")
 
 
 ### 2.4
-Now the whole data set is used to construct the same models. To AIC values is computed to evaluate the models and decide which model that is the best one.  
+Now the whole data set is used to construct the same models. AIC values is computed to evaluate the models and decide which model that is the best one. The criterion used for comparing the models is that the AIC value should be as low as possible. With that criterion in mind is it concluded that the model with polynomial terms up to a power of 3 is the preferred model.   
 ```{r, echo=FALSE}
 AIC <- 0
 for (i in 1:6){
@@ -127,12 +126,13 @@ AIC
 
 
 ### 2.5
-Another area where the AIC criterion can be useful is in the variable selection. Here the function *stepAIC* starts with a linear model that has *fat* as response variable and *channel1-channel100* as predictors.  it is concluded that 63 of the predictors are selected.  
+Another area where the AIC criterion can be useful is in the variable selection. Here the function *stepAIC* starts with a linear model that has *fat* as response variable and *channel1-channel100* as predictors. After running the variable selection procedure it is concluded that 63 of the predictors are selected.  
 
 ### 2.6 - 2.7
-With the same response and predictor variables as in 2.5 a ridge regression model is fitted. The difference between a ridge regression model and a linear model is the use of a penalty factor $\lambda$ in the former model. The value of $\lambda$ affects the coefficients in such a way that they shrinks. How the values of the coefficients in the ridge regression model depends on the log of $\lambda$ is illustrated by plotting  these values.  
+With the same response and predictor variables as in 2.5 a ridge regression model is fitted. The difference between a ridge regression model and a linear model is the use of a penalty factor $\lambda$ in the former model. The value of $\lambda$ affects the coefficients in such a way that they shrinks.  
+How the values of the coefficients in the ridge regression model depends on the log of $\lambda$ is illustrated by plotting these values.  
 
-```{r, echo=FALSE, message=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(glmnet)
 vars <- data.frame(tecator[,2:102])
 # Create matrix with x variables 
@@ -145,13 +145,17 @@ plot(ridge_mod, xvar="lambda",label=TRUE)
 ```
 
 When fitting a LASSO model instead the dependence between the coefficients and log of $\lambda$ changes.  
+
 ```{r, echo=FALSE}
 lasso_mod <- glmnet(mat_vars, mat_y, alpha=1, family = "gaussian")
 plot(lasso_mod, xvar="lambda",label=TRUE)
 ```
+Compare the plots, conclusions
+The difference between a Ridge regression model and a LASSO model... 
 
 ### 2.8
-To find a optimal LASSO model a possible approach is to use cross-validation  
+To find a optimal LASSO model a possible approach is to use cross-validation. This results in a model with 0.03 as the optimal value of lambda and 14 variables.  
+How the CV score depend on the log of $\lambda$  
 
 ```{r, echo=FALSE}
 set.seed(12345)
