@@ -87,8 +87,10 @@ MSE_test[i] <- 1/length(Moisture_test)  * sum((y_hat_test-Moisture_test)^2)
 }
 
 
-plot(1:6, MSE_train, type="l", ylim=c(30,35), col="blue")
+plot(1:6, MSE_train, type="l", ylim=c(30,35), col="blue", ylab="MSE", xlab="Model")
 lines(1:6, MSE_test, type="l", col="red")
+legend(5.25,33.5,c("Train","Test"), lty=c(1,1), 
+  lwd=c(2.5,2.5),col=c("blue","red"),  cex=0.6) 
 
 # 2.4
 AIC <- 0
@@ -108,9 +110,6 @@ vars <- data.frame(tecator[,2:102])
 
 FullModel <- lm(Fat ~ ., data=vars)
 Step_selec <- stepAIC(FullModel, direction = "both")
-summary(Step_selec)
-length(Step_selec$coefficients)
-
 
 # 2.6 - 2.7
 library(glmnet)
@@ -132,7 +131,5 @@ lasso_cv <- cv.glmnet(mat_vars, mat_y, alpha=1, family = "gaussian")
 lasso_cv$lambda.min
 plot(lasso_cv)
 coef(lasso_cv, s = "lambda.min")
-
-lasso_cv$cvm
 
 # # # # # # #
