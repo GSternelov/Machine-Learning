@@ -9,7 +9,6 @@ data <- longley
 longley.x <- data.matrix(longley[, 1:6])
 longley.y <- longley[, "Employed"]
 
-longley.x <- scale(longley.x, center=TRUE, scale=FALSE)
 
 # Implement ridgereg function
 ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
@@ -22,7 +21,7 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   folds <- c(groups, end_values)
   folds <- sort(folds) 
   
-  x <- cbind(rep(1, nrow(x)), x)
+  #x <- cbind(rep(1, nrow(x)), x)
   CV <- 0
   for (i in 1:nfolds){
     testIndexes <- which(folds==i,arr.ind=TRUE)
@@ -30,6 +29,7 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
     testData_y <- y[testIndexes]
     trainData_x <- x[-testIndexes, ]
     trainData_y <- y[-testIndexes]
+    
     
     # Perform ridge regression on train data
     x_t <- t(trainData_x)
@@ -44,9 +44,11 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   CV_score <- (1/nfolds) * sum(CV)
   return(CV_score)
 }
+a <- 0
 for (i in 1:7){
-  print(ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10))
+  a[i] <- (ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10))
 }
+plot(a)
 # Assignment 2
 # 2.1
 tecator <- read.csv("Lab 2/tecator.csv", sep=";", header = TRUE)
@@ -104,7 +106,7 @@ for (i in 1:6){
   AIC2[i] <- extractAIC(poly_modelTrain[[i]])[2]
   AIC3[i] <- AIC(poly_modelTrain[[i]])
 }
-
+plot(AIC, type="l", xlab="i")
 # 2.5
 vars <- data.frame(tecator[,2:102])
 
@@ -133,3 +135,60 @@ plot(lasso_cv)
 coef(lasso_cv, s = "lambda.min")
 
 # # # # # # #
+
+# Implement ridgereg function
+ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
+  # Create the folds and initialize CV vector
+  n <- length(longley.y)
+  seques <- floor(n/10)
+  reps <- n%%10
+  groups <- rep(seq(1,10, 1), seques)
+  end_values <- rep(10, reps)
+  folds <- c(groups, end_values)
+  folds <- sort(folds) 
+  
+  #x <- cbind(rep(1, nrow(x)), x)
+  CV <- 0
+  for (i in 1:nfolds){
+    testIndexes <- which(folds==1,arr.ind=TRUE)
+    testData_x <- longley.x[testIndexes, ]
+    testData_y <- longley.y[testIndexes]
+    trainData_x <- longley.x[-testIndexes, ]
+    trainData_y <- longley.y[-testIndexes]
+    
+    # find the mean value for columns in train, use that mean to scale the values 
+    # in test. For example, if mean in column 1 in train is 3, then use that value
+    # to scale column 1 in test data. 
+
+    trainData_x <- scale(trainData_x, center=TRUE, scale=FALSE)
+    trainData_y <- scale(trainData_y, center=TRUE, scale=FALSE)
+    
+    class(testData_x)
+    mean_x <- 0
+    center_test <- 0
+    for (i in 1:ncol(trainData_x)){
+      if(class(testData_x) == "numeric"){
+        
+      }else
+      mean_x[i] <- mean(trainData_x[,1])
+      center_test[,i] <- testData_x[,1] - mean_x[i]
+    } 
+        
+    # Perform ridge regression on train data
+    x_t <- t(trainData_x)
+    I <- diag(ncol(trainData_x))
+    BetaRidge <- solve(x_t %*% trainData_x + lambda * I) %*% x_t %*% trainData_y
+    #y_hat <- trainData_x %*% BetaRidge
+    # Test regression on test data and compare with true values for test data
+    y_hat_test <- testData_x %*% BetaRidge
+    # Calculates CV
+    CV[i] <- sum((testData_y - y_hat_test)^2)
+  }
+  CV_score <- (1/nfolds) * sum(CV)
+  return(CV_score)
+}
+a <- 0
+for (i in 1:7){
+  a[i] <- (ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10))
+}
+plot(a)
