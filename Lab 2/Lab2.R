@@ -140,17 +140,17 @@ coef(lasso_cv, s = "lambda.min")
 ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   # Create the folds and initialize CV vector
   n <- length(longley.y)
-  seques <- floor(n/10)
-  reps <- n%%10
-  groups <- rep(seq(1,10, 1), seques)
-  end_values <- rep(10, reps)
+  seques <- floor(n/nfolds)
+  reps <- n%%nfolds
+  groups <- rep(seq(1,nfolds, 1), seques)
+  end_values <- rep(nfolds, reps)
   folds <- c(groups, end_values)
   folds <- sort(folds) 
   
   #x <- cbind(rep(1, nrow(x)), x)
   CV <- 0
   for (i in 1:nfolds){
-    testIndexes <- which(folds==1,arr.ind=TRUE)
+    testIndexes <- which(folds==10,arr.ind=TRUE)
     testData_x <- longley.x[testIndexes, ]
     testData_y <- longley.y[testIndexes]
     trainData_x <- longley.x[-testIndexes, ]
@@ -159,20 +159,22 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
     # find the mean value for columns in train, use that mean to scale the values 
     # in test. For example, if mean in column 1 in train is 3, then use that value
     # to scale column 1 in test data. 
-
+    if (class(testData_x) == "numeric"){
+      testData_x <- data.frame(t(testData_x))
+    }else{
+      testData_x <- data.frame(testData_x)
+    }
+    mean_x <- 0
+    center_test <- matrix(ncol=ncol(testData_x), nrow=nrow(testData_x))
+    for (i in 1:ncol(trainData_x)){
+      mean_x[i] <- mean(trainData_x[,i])
+      center_test[,i] <- testData_x[,i] - mean_x[i]
+    } 
+    testData_y <- testData_y - mean(trainData_y)
     trainData_x <- scale(trainData_x, center=TRUE, scale=FALSE)
     trainData_y <- scale(trainData_y, center=TRUE, scale=FALSE)
+    testData_x <- as.matrix(center_test)
     
-    class(testData_x)
-    mean_x <- 0
-    center_test <- 0
-    for (i in 1:ncol(trainData_x)){
-      if(class(testData_x) == "numeric"){
-        
-      }else
-      mean_x[i] <- mean(trainData_x[,1])
-      center_test[,i] <- testData_x[,1] - mean_x[i]
-    } 
         
     # Perform ridge regression on train data
     x_t <- t(trainData_x)
@@ -187,6 +189,9 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   CV_score <- (1/nfolds) * sum(CV)
   return(CV_score)
 }
+
+ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10)
+
 a <- 0
 for (i in 1:7){
   a[i] <- (ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10))

@@ -152,7 +152,7 @@ lasso_mod <- glmnet(mat_vars, mat_y, alpha=1, family = "gaussian")
 plot(lasso_mod, xvar="lambda",label=TRUE)
 ```
 When comparing the plot for the ridge regression and for LASSO the characteristics for the respective methods becomes clear. For the ridge model the coefficients shrinks with higher values of lambda and slowly approaches zero. For the LASSO models coefficients it is harder to se a clear pattern in the dependence between the coefficients and log of $\lambda$. The majority of the coefficients quickly equals zero, some has a sort of wiggly curve and some of the coefficients decreases slowly for higher values of log $\lambda$.  
-Conclusions?  
+
 
 ### 2.8
 To find a optimal LASSO model a possible approach is to use cross-validation. This results in a model with 0.03 as the optimal value of lambda and 14 variables.  
