@@ -9,7 +9,7 @@ output: pdf_document
 In the first assignment a data material named australian crabs is analysed. It contanis information about measurements of the frontal lobe, rear witdh etc. for 200 crabs. 
 
 ### 1.1
-A scatterplot visualizing the the carapace length versus rear width.  
+A scatterplot visualizing the carapace length versus rear width.  
 
 ```{r, echo=FALSE, warning=FALSE}
 aussieCrab <- read.csv("australian-crabs.csv", sep=",", header = TRUE)
@@ -19,9 +19,89 @@ ggplot(aussieCrab, aes(y=RW, x=CL)) + geom_point(aes(color=sex), size=3)
 
 ```
 
+**Do you think that this data is easy to classify by linear discriminant analysis?**  
+
 ### 1.2
 
+```{r, echo=FALSE}
+# 1.2
 
+male_data <- subset(aussieCrab, sex=="Male")[5:6]
+female_data <- subset(aussieCrab, sex=="Female")[5:6]
+
+c(mean(male_data[,1]), mean(male_data[,2]))
+male_vec <- c(mean(male_data[,1]), mean(male_data[,2]))
+female_vec <- c(mean(female_data[,1]), mean(female_data[,2]))
+
+male_cov <- cov(male_data)
+female_cov <- cov(female_data)
+
+covHat <- matrix(100/200 * male_cov + 100/200 * female_cov, ncol=2)
+
+# prop priors
+prior_male <- 100/200
+prior_female <- 100/200
+
+W_male <- (as.matrix(aussieCrab[, 5:6]))%*% solve(covHat) %*% as.matrix(male_vec) 
+Wo_male <-  (0.5 *  t(as.matrix(male_vec)) %*% solve(covHat) %*% as.matrix(male_vec) +
+  log(prior_male))
+disc_male <- W_male - as.vector(Wo_male)
+
+W_female <- (as.matrix(aussieCrab[, 5:6]))%*% solve(covHat)%*% as.matrix(female_vec) 
+Wo_female <- (0.5 *  t(as.matrix(female_vec)) %*% solve(covHat) %*% as.matrix(female_vec) +
+   log(prior_female))
+disc_female <-W_female - as.vector(Wo_female)
+
+classif <- 0
+for(i in 1:200){
+  if(disc_male[i] > disc_female[i]){
+    classif[i] = "male"
+  }else{
+    classif[i] = "female"
+  }
+}
+
+```
+
+**extract the discriminant functions and equation of the decision boundary.**
+Decision boundary : CL = 2.91RW - 5.06  
+
+### 1.3
+
+```{r, echo=FALSE}
+table(classif, aussieCrab$sex)
+lda_class <- data.frame(aussieCrab, classif)
+
+ggplot(lda_class, aes(y=RW, x=CL)) + 
+  geom_point(aes(color=classif,shape=sex), size=4)
+
+```
+
+**plot also the decision boundary. Comment on the quality of fit.**  
+
+### 1.4
+
+```{r, echo=FALSE}
+logi_class <- glm(sex~RW+CL,data=aussieCrab, family=binomial())
+summary(logi_class)
+exp(coef(logi_class))
+pred_logi <- data.frame(aussieCrab$RW,aussieCrab$CL,aussieCrab$sex , predict(logi_class, type="response"))
+
+for (i in 1:length(pred_logi[,4])){
+if(pred_logi[,4][i] <0.5){
+  pred_logi[,4][i] = 0
+}else{
+  pred_logi[,4][i] = 1
+} }
+  
+ggplot(pred_logi, aes(y=aussieCrab.RW, x=aussieCrab.CL)) + 
+  geom_point(aes(color=pred_logi[,4],shape=aussieCrab.sex), size=4)
+
+table(pred_logi[,4], pred_logi$aussieCrab.sex)
+```
+
+**plot the classified data and present the equation of the decision boundary. Compare this result with the LDA result.**
+Decision boundary: CL = 2.713RW - 2.94
 
 ## Assignment 2
 
@@ -44,7 +124,7 @@ id=sample(1:n, floor(n*0.5))
 valid=test[id,]
 test=test[-id,]
 ```
-
+**report the misclassification rates for the training and test data. Choose the measure providing the better results for the following steps.**  
 
 ### 2.2
 
@@ -111,19 +191,30 @@ table(bayesPredTest, test$good_bad)
 Repeating 2.4 but with a defined loss matrix. 
 ```{r, echo=FALSE}
 # Repeating 2.4 but with a defined loss matrix. 
-lossMat <- matrix(c(0,10,1,0), ncol=2)
+raws <- data.frame(predict(bayesFit, newdata=train, type="raw"))
 
-lossMat * bayesTrain
-lossMat * bayesTest
+preds <- 0
+for (i in 1:500){
+  if((raws[i,1]/raws[i,2]) > 0.1){
+    preds[i] = "bad"
+  }else{
+    preds[i] ="good"
+  }  
+}
 
-```
-If I set the zeros in the loss matrix to one, will the right confusion matrix be obtained? Like this
-```{r, echo=FALSE}
-# If I set the zeros in the loss matrix to one, will the right confusion matrix be
-# obtained? Like this
-lossMat2 <- matrix(c(1,10,1,1), ncol=2)
+table(train$good_bad, preds)
 
-lossMat2 * bayesTrain
-lossMat2 * bayesTest
+rawTest <- predict(bayesFit, newdata=test, type="raw")
+preds <- 0
+for (i in 1:250){
+  if((rawTest[i,1]/rawTest[i,2]) > 0.1){
+    preds[i] = "bad"
+  }else{
+    preds[i] ="good"
+  }  
+}
+
+table(test$good_bad, preds)
+
 ```
 

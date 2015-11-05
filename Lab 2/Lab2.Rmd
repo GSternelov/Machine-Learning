@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Machine Learning - Lab 2"
 author: "Gustav Sternelöv"
-date: "Thursday, October 29, 2015"
+date: "Thursday, November 05, 2015"
 output:
   pdf_document:
     fig_height: 4
@@ -13,17 +13,17 @@ output:
 The function *ridgereg_nfoldCV* which performs ridge regression by using n-fold cross validation is implemented at the first step of assignment 1. The R-code used to create the function can be seen in the appendix at the end of the report.  
 
 ### 1.2
-The function implemented in 1.2 is tested with the longley data set. The predictor variables has been centered, but not scaled. Number of folds is set to 10 and the value for lambda goes from 1 to 7, by 1. The given values for the CV score is shown in the following table below and it can be seen that the CV score increases for higher values of lambda. The conclusion from this result is that the best model is given with lambda set to 1.
-```{r 1.2, echo=FALSE, eval=TRUE}
+The function implemented in 1.1 is tested with the longley data set. The variables has been centered, but not scaled. Number of folds is set to 10 and the value for lambda goes from 1 to 7, by 1. The given values for the CV score is shown in the following table below and it can be seen that the CV score decreases for higher values of lambda. The conclusion from this result is that the best model is given with lambda set to 7.
+```{r , echo=FALSE, eval=TRUE}
 library(MASS)
+
+# Reads in data set Longley
 data(longley)
 data <- longley
 
 longley.x <- data.matrix(longley[, 1:6])
 longley.y <- longley[, "Employed"]
 
-longley.x <- scale(longley.x, center=TRUE, scale=FALSE)
-# Implement ridgereg function
 ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   # Create the folds and initialize CV vector
   n <- length(y)
@@ -34,7 +34,7 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   folds <- c(groups, end_values)
   folds <- sort(folds) 
   
-  x <- cbind(rep(1, nrow(x)), x)
+  #x <- cbind(rep(1, nrow(x)), x)
   CV <- 0
   for (i in 1:nfolds){
     testIndexes <- which(folds==i,arr.ind=TRUE)
@@ -43,11 +43,30 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
     trainData_x <- x[-testIndexes, ]
     trainData_y <- y[-testIndexes]
     
+    # find the mean value for columns in train, use that mean to scale the values 
+    # in test. For example, if mean in column 1 in train is 3, then use that value
+    # to scale column 1 in test data. 
+    if (class(testData_x) == "numeric"){
+      testData_x <- data.frame(t(testData_x))
+    }else{
+      testData_x <- data.frame(testData_x)
+    }
+    mean_x <- 0
+    center_test <- matrix(ncol=ncol(testData_x), nrow=nrow(testData_x))
+    for (j in 1:ncol(trainData_x)){
+      mean_x[j] <- mean(trainData_x[,j])
+      center_test[,j] <- testData_x[,j] - mean_x[j]
+    } 
+    testData_y <- testData_y - mean(trainData_y)
+    trainData_x <- scale(trainData_x, center=TRUE, scale=FALSE)
+    trainData_y <- scale(trainData_y, center=TRUE, scale=FALSE)
+    testData_x <- as.matrix(center_test)
+    
+        
     # Perform ridge regression on train data
     x_t <- t(trainData_x)
     I <- diag(ncol(trainData_x))
     BetaRidge <- solve(x_t %*% trainData_x + lambda * I) %*% x_t %*% trainData_y
-    #y_hat <- trainData_x %*% BetaRidge
     # Test regression on test data and compare with true values for test data
     y_hat_test <- testData_x %*% BetaRidge
     # Calculates CV
@@ -56,10 +75,11 @@ ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
   CV_score <- (1/nfolds) * sum(CV)
   return(CV_score)
 }
-
+CvScore <- 0
 for (i in 1:7){
-  print(ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=5))
+  CvScore[i] <- ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10)
 }
+plot(CvScore, type="l", xlab="Lambda")
 ```
 
 ## Assignment 2
@@ -74,11 +94,13 @@ plot(tecator$Protein, tecator$Moisture)
 To use a linear model to describe the levels of moisture with the levels of protein may be an appopriate approach by the look of the plot.  
 
 ### 2.2
-A Probabilistic model...
+The probabilistic model for $M_i$ where $M_i$ is a model that has Moisture as a polynomial function of protein is shown below. The model includes polynomial terms up to power *i* where a model up to power 1 is equal to a linear model, up to power 2 is a quadratic model and so on. 
+$$Y\sim N(w_0 + \sum{w_i}x^i, \sigma^2)$$
   
 ### 2.3
 For exercise 2.3 the data set is divided into a training set and a validation set where each set contains 50 percent of the observations.  
-For models with polynomials of higher power the MSE for test data in general increases, and for training data it decreases. The best model for training data in terms of MSE is the, probably overfitted, model with polynomial terms up to a power of 6. This can be compared to the the test data which has the lowest MSE for a simple linear model. In terms of the bias-variance trade-off an interpretation of the plot is that the linear model gives the best fit. A conclusion that suits well with the comments made about the relationship between moisture and protein in 2.1.  
+For models with polynomials of higher power the MSE for test data in general increases, and for training data it decreases. The best model for training data in terms of MSE is the, probably overfitted, model with polynomial terms up to a power of 6. This can be compared to the the test data which has the lowest MSE for a simple linear model. The best model is therefore model 1, a conclusion that suits well with the comments made about the relationship between moisture and protein in 2.1.
+In terms of the bias-variance trade-off an interpretation of the plot is that model 6 gives the lowest bias and highest variance and that model 1 gives the opposite result.  
 
 ```{r, echo=FALSE}
 n=dim(tecator)[1]
@@ -122,7 +144,7 @@ for (i in 1:6){
   RSS <- sum(poly_modelTrain[[i]]$residuals^2)  
   AIC[i] <- 2*(i+1) + n * log(RSS/n)
 }
-AIC
+plot(AIC, type="l", xlab="Model")
 ```
 
 
@@ -163,146 +185,13 @@ set.seed(12345)
 lasso_cv <- cv.glmnet(mat_vars, mat_y, alpha=1, family = "gaussian")
 plot(lasso_cv)
 ```
-For higher values of the log $\lambda$ the CV-score increases. The optimal $\lambda$ was suggested to be approximately 0.03, but as can be seen in the graph it is not that clear which value of $\lambda$ that is optimal. The difference between the CV scores for log $\lambda$ values around -3 is very small, whilst the number of variables in the model differs. Therefore the reliability of the value chosen for the penalty factor, $\lambda$, may be questioned. A simpler model with for example 10 variables instead of 14 has its confidence interval for the CV score overlapping the confidence interval for the optimal models CV score. This might cause some uncertainty over the decision of the value for the penalty factor. 
+For higher values of the log $\lambda$ the CV-score increases. The optimal $\lambda$ was suggested to be approximately 0.03, but as can be seen in the graph it is not that clear which value of $\lambda$ that is optimal. The difference between the CV scores for log $\lambda$ values around -3 is very small, whilst the number of variables in the model differs. This might cause some uncertainty over the reliability for the chosen value for the penalty factor.  
 
 ### 2.9
 The variable selection done with *stepAIC* and the selection done with the cross-validated LASSO model choose a significantly different amount of variables. With *stepAIC* a model with 63 variables were obtained and from the cross-validated LASSO computations a model with 14 variables. 
 
 
 ## Appendix - R-code
-```{r, eval=FALSE}
-# Assignment 1
-library(MASS)
+```{r code=readLines(knitr::purl('C:/Users/Gustav/Documents/Machine-Learning/Lab 2/Lab2.Rmd', documentation = 1)), eval = FALSE}
 
-# Reads in data set Longley
-data(longley)
-data <- longley
-
-longley.x <- data.matrix(longley[, 1:6])
-longley.y <- longley[, "Employed"]
-
-longley.x <- scale(longley.x, center=TRUE, scale=FALSE)
-
-# Implement ridgereg function
-ridgereg_nfoldCV <- function(x, y, lambda, nfolds){
-  # Create the folds and initialize CV vector
-  n <- length(y)
-  seques <- floor(n/nfolds)
-  reps <- n%%nfolds
-  groups <- rep(seq(1,nfolds, 1), seques)
-  end_values <- rep(nfolds, reps)
-  folds <- c(groups, end_values)
-  folds <- sort(folds) 
-  
-  x <- cbind(rep(1, nrow(x)), x)
-  CV <- 0
-  for (i in 1:nfolds){
-    testIndexes <- which(folds==i,arr.ind=TRUE)
-    testData_x <- x[testIndexes, ]
-    testData_y <- y[testIndexes]
-    trainData_x <- x[-testIndexes, ]
-    trainData_y <- y[-testIndexes]
-    
-    # Perform ridge regression on train data
-    x_t <- t(trainData_x)
-    I <- diag(ncol(trainData_x))
-    BetaRidge <- solve(x_t %*% trainData_x + lambda * I) %*% x_t %*% trainData_y
-    #y_hat <- trainData_x %*% BetaRidge
-    # Test regression on test data and compare with true values for test data
-    y_hat_test <- testData_x %*% BetaRidge
-    # Calculates CV
-    CV[i] <- sum((testData_y - y_hat_test)^2)
-  }
-  CV_score <- (1/nfolds) * sum(CV)
-  return(CV_score)
-}
-for (i in 1:7){
-  print(ridgereg_nfoldCV(longley.x, longley.y, lambda=i, nfolds=10))
-}
-# Assignment 2
-# 2.1
-tecator <- read.csv("Lab 2/tecator.csv", sep=";", header = TRUE)
-
-plot(tecator$Moisture, tecator$Protein)
-
-# By looking at the plot it does not seem completely of the charts to, at least to start with,
-# consider a linear model. 
-
-# 2.2
-# How the Mi model looks up to the power n.
-# lm(Moisture ~ poly(Protein, n, raw=TRUE))
-
-
-# 2.3 
-# Divides data into train and test
-n=dim(tecator)[1]
-set.seed(12345)
-id=sample(1:n, floor(n*0.5))
-train=tecator[id,]
-test=tecator[-id,]
-
-# Extract data sets for moisture and protein data from train and test
-Protein_train <- train$Protein
-Moisture_train <- train$Moisture
-Protein_test <- test$Protein
-Moisture_test <- test$Moisture
-
-poly_modelTrain <- list()
-MSE_train <- 0
-MSE_test <- 0
-
-for (i in 1:6){
-poly_modelTrain[[i]] <-  lm(Moisture_train ~ poly(Protein_train, i, raw=TRUE))
-MSE_train[i] <- 1/length(Moisture_train) * sum(poly_modelTrain[[i]]$residuals^2)
-y_hat_test <- predict(lm(Moisture_train ~ poly(Protein_train, i)), data.frame(Protein_train=Protein_test))
-MSE_test[i] <- 1/length(Moisture_test)  * sum((y_hat_test-Moisture_test)^2)
-}
-
-
-plot(1:6, MSE_train, type="l", ylim=c(30,35), col="blue", ylab="MSE", xlab="Model")
-lines(1:6, MSE_test, type="l", col="red")
-legend(5.25,33.5,c("Train","Test"), lty=c(1,1), 
-  lwd=c(2.5,2.5),col=c("blue","red"),  cex=0.6) 
-
-# 2.4
-AIC <- 0
-AIC2 <- 0
-AIC3 <- 0
-for (i in 1:6){
-  poly_modelTrain[[i]] <-  lm(tecator$Moisture ~ poly(tecator$Protein, i, raw=TRUE))
-  n <- length(tecator$Moisture)
-  RSS <- sum(poly_modelTrain[[i]]$residuals^2)  
-  AIC[i] <- 2*(i+1) + n * log(RSS/n)
-  AIC2[i] <- extractAIC(poly_modelTrain[[i]])[2]
-  AIC3[i] <- AIC(poly_modelTrain[[i]])
-}
-
-# 2.5
-vars <- data.frame(tecator[,2:102])
-
-FullModel <- lm(Fat ~ ., data=vars)
-Step_selec <- stepAIC(FullModel, direction = "both")
-
-# 2.6 - 2.7
-library(glmnet)
-# Create matrix with x variables 
-mat_vars <- as.matrix(vars[,1:100])
-# y variable
-mat_y <- as.matrix(vars[,101])
-
-ridge_mod <- glmnet(mat_vars, mat_y, alpha=0, family = "gaussian")
-plot(ridge_mod, xvar="lambda",label=TRUE)
-
-lasso_mod <- glmnet(mat_vars, mat_y, alpha=1, family = "gaussian")
-plot(lasso_mod, xvar="lambda",label=TRUE)
-
-# 2.8
-set.seed(12345)
-lasso_cv <- cv.glmnet(mat_vars, mat_y, alpha=1, family = "gaussian")
-
-lasso_cv$lambda.min
-plot(lasso_cv)
-coef(lasso_cv, s = "lambda.min")
 ```
-
-

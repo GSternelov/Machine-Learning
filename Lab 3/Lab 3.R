@@ -10,27 +10,74 @@ ggplot(aussieCrab, aes(y=RW, x=CL)) + geom_point(aes(color=sex), size=3)
 # Is this data easy to classify by linear discriminant analysis?
 
 # 1.2
-# estimate coefficients (c means compute value for c classes)
-# Inputs to estimate for are RW and CL
-myC <- 1/Nc *sum(xi)
-covC <- 1/Nc * sum((xi - myC)*t(xi-myC))
-covHat <- 1/N sum(Nc*covC)
-propPriorC <- Nc / N
 
-# calculate the parts of softmax
-Woi <- -1/2 *t(myC)*solve(covHat)*myC + log(propPriorC)
-Wi <- solve(covHat)*myC
+male_data <- subset(aussieCrab, sex=="Male")[5:6]
+female_data <- subset(aussieCrab, sex=="Female")[5:6]
 
-# Then softmax equals p(y = ....), which equals
-t(Wi)*x + Woi
-# this is the expression that is used to classify the observations
+c(mean(male_data[,1]), mean(male_data[,2]))
+male_vec <- c(mean(male_data[,1]), mean(male_data[,2]))
+female_vec <- c(mean(female_data[,1]), mean(female_data[,2]))
 
-# Genomförande
-myRW <- 1/length(aussieCrab$RW) *sum(aussieCrab$RW)
-myCL <- 1/length(aussieCrab$CL) *sum(aussieCrab$CL)
-covRW <- 1/length(aussieCrab$RW) * sum((aussieCrab$RW -myRW)*t(aussieCrab$RW -myRW))
-covCL <- 1/length(aussieCrab$CL) * sum((aussieCrab$CL -myCL)*t(aussieCrab$CL -myCL))
-covHat <- 1/200 * (myRW*covRW + myCL*covCL)
+male_cov <- cov(male_data)
+female_cov <- cov(female_data)
+
+covHat <- matrix(100/200 * male_cov + 100/200 * female_cov, ncol=2)
+
+# prop priors
+prior_male <- 100/200
+prior_female <- 100/200
+
+
+
+# Instead calculate the discriminant function
+
+W_male <- (as.matrix(aussieCrab[, 5:6]))%*% solve(covHat) %*% as.matrix(male_vec) 
+Wo_male <-  (0.5 *  t(as.matrix(male_vec)) %*% solve(covHat) %*% as.matrix(male_vec) +
+  log(prior_male))
+disc_male <- W_male - as.vector(Wo_male)
+
+W_female <- (as.matrix(aussieCrab[, 5:6]))%*% solve(covHat)%*% as.matrix(female_vec) 
+Wo_female <- (0.5 *  t(as.matrix(female_vec)) %*% solve(covHat) %*% as.matrix(female_vec) +
+   log(prior_female))
+disc_female <-W_female - as.vector(Wo_female)
+classif <- 0
+for(i in 1:200){
+  if(disc_male[i] > disc_female[i]){
+    classif[i] = "male"
+  }else{
+    classif[i] = "female"
+  }
+}
+
+lm(classif~RW+CL, lda_class)
+table(classif, aussieCrab$sex)
+
+# 1.3
+lda_class <- data.frame(aussieCrab, classif)
+
+ggplot(lda_class, aes(y=CL, x=RW)) + 
+  geom_point(aes(color=classif,shape=sex), size=4) +
+  geom_abline(intercept = -5.06, slope=2.91, colour="red")
+
+
+# 1.4
+logi_class <- glm(sex~RW+CL,data=aussieCrab, family=binomial())
+summary(logi_class)
+exp(coef(logi_class))
+pred_logi <- data.frame(aussieCrab$RW,aussieCrab$CL,aussieCrab$sex , predict(logi_class, type="response"))
+
+for (i in 1:length(pred_logi[,4])){
+if(pred_logi[,4][i] <0.5){
+  pred_logi[,4][i] = 0
+}else{
+  pred_logi[,4][i] = 1
+} }
+  
+ggplot(pred_logi, aes(y=aussieCrab.CL, x=aussieCrab.RW)) + 
+  geom_point(aes(color=pred_logi[,4],shape=aussieCrab.sex), size=4) +
+  geom_abline(intercept = -2.94, slope=2.713, colour="red")
+
+table(pred_logi[,4], pred_logi$aussieCrab.sex)
 
 # Assignment 2
 #2.1
@@ -99,19 +146,30 @@ bayesTrain <-table(bayesPredTrain, train$good_bad)
 bayesTest <- table(bayesPredTest, test$good_bad)
 
 # 2.5 
-# Repeating 2.4 but with a defined loss matrix. 
-lossMat <- matrix(c(0,10,1,0), ncol=2)
+raws <- data.frame(predict(bayesFit, newdata=train, type="raw"))
 
-lossMat * bayesTrain
-lossMat * bayesTest
+preds <- 0
+for (i in 1:500){
+  if((raws[i,1]/raws[i,2]) > 0.1){
+    preds[i] = "bad"
+  }else{
+    preds[i] ="good"
+  }  
+}
 
-# If I set the zeros in the loss matrix to one, will the right confusion matrix be
-# obtained? Like this
-lossMat2 <- matrix(c(1,10,1,1), ncol=2)
+table(train$good_bad, preds)
 
-lossMat2 * bayesTrain
-lossMat2 * bayesTest
+rawTest <- predict(bayesFit, newdata=test, type="raw")
+preds <- 0
+for (i in 1:250){
+  if((rawTest[i,1]/rawTest[i,2]) > 0.1){
+    preds[i] = "bad"
+  }else{
+    preds[i] ="good"
+  }  
+}
 
+table(test$good_bad, preds)
 
 
 
