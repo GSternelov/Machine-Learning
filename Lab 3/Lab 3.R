@@ -49,7 +49,6 @@ for(i in 1:200){
   }
 }
 
-lm(classif~RW+CL, lda_class)
 table(classif, aussieCrab$sex)
 
 # 1.3
@@ -107,7 +106,10 @@ deviFit
 summary(deviFit)
 # b) gini index
 giniFit <- tree(good_bad~., data=train, split="gini")
-summary(giniFit)
+gini_summary <- summary(giniFit)
+gini_summary$misclass[1] / gini_summary$misclass[2]
+
+predict(giniFit, newdata=test)
 
 # Lower misclassification for deviance
 

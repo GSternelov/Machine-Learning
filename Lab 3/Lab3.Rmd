@@ -15,11 +15,12 @@ A scatterplot visualizing the carapace length versus rear width.
 aussieCrab <- read.csv("australian-crabs.csv", sep=",", header = TRUE)
 
 library(ggplot2)
-ggplot(aussieCrab, aes(y=RW, x=CL)) + geom_point(aes(color=sex), size=3)
+ggplot(aussieCrab, aes(y=CL, x=RW)) + geom_point(aes(color=sex), size=3)
 
 ```
 
 **Do you think that this data is easy to classify by linear discriminant analysis?**  
+For values of RW higher than 12.5 and values of CL higher than 30 this data should be easy to classify by linear discriminant analysis. For lower values the obseervations lies closer and it will problaby be harder to find a decision boundary that classifies all those observations correctly. 
 
 ### 1.2
 
@@ -29,7 +30,6 @@ ggplot(aussieCrab, aes(y=RW, x=CL)) + geom_point(aes(color=sex), size=3)
 male_data <- subset(aussieCrab, sex=="Male")[5:6]
 female_data <- subset(aussieCrab, sex=="Female")[5:6]
 
-c(mean(male_data[,1]), mean(male_data[,2]))
 male_vec <- c(mean(male_data[,1]), mean(male_data[,2]))
 female_vec <- c(mean(female_data[,1]), mean(female_data[,2]))
 
@@ -63,23 +63,29 @@ for(i in 1:200){
 
 ```
 
-**extract the discriminant functions and equation of the decision boundary.**
+**extract the discriminant functions and equation of the decision boundary.**  
+
 Decision boundary : CL = 2.91RW - 5.06  
 
 ### 1.3
+In the following plot the observed values of RW and CL are visualized. Colours are given after the classification label and shape after the true class for the observations. The red line gives the decision boundary.  
 
 ```{r, echo=FALSE}
 table(classif, aussieCrab$sex)
 lda_class <- data.frame(aussieCrab, classif)
 
-ggplot(lda_class, aes(y=RW, x=CL)) + 
-  geom_point(aes(color=classif,shape=sex), size=4)
+ggplot(lda_class, aes(y=CL, x=RW)) + 
+  geom_point(aes(color=classif,shape=sex), size=4) +
+  geom_abline(intercept = -5.06, slope=2.91, colour="red")
 
 ```
 
-**plot also the decision boundary. Comment on the quality of fit.**  
+**Comment on the quality of fit.**  
+The fit is pretty god. Only 7 of 200 observations is classified wrongly, and as expected most of these observations are find at the bottom left of the plot. 
 
 ### 1.4
+
+Another method to classify the observations are by a logistic regression model. In the graph below the classifications are plotted in the same way as in 1.3.  
 
 ```{r, echo=FALSE}
 logi_class <- glm(sex~RW+CL,data=aussieCrab, family=binomial())
@@ -89,24 +95,27 @@ pred_logi <- data.frame(aussieCrab$RW,aussieCrab$CL,aussieCrab$sex , predict(log
 
 for (i in 1:length(pred_logi[,4])){
 if(pred_logi[,4][i] <0.5){
-  pred_logi[,4][i] = 0
+  pred_logi[,4][i] = "Female"
 }else{
-  pred_logi[,4][i] = 1
+  pred_logi[,4][i] = "Male"
 } }
   
-ggplot(pred_logi, aes(y=aussieCrab.RW, x=aussieCrab.CL)) + 
-  geom_point(aes(color=pred_logi[,4],shape=aussieCrab.sex), size=4)
+ggplot(pred_logi, aes(y=aussieCrab.CL, x=aussieCrab.RW)) + 
+  geom_point(aes(color=pred_logi[,4],shape=aussieCrab.sex), size=4) +
+  geom_abline(intercept = -2.94, slope=2.713, colour="red")
 
 table(pred_logi[,4], pred_logi$aussieCrab.sex)
 ```
 
-**plot the classified data and present the equation of the decision boundary. Compare this result with the LDA result.**
-Decision boundary: CL = 2.713RW - 2.94
+**Compare this result with the LDA result.**  
+Decision boundary: CL = 2.713RW - 2.94  
+The obtained result with logistic regression is very similar to the result given with the *lda* model. **Something about which observations that has been misclassified, think there is some difference between the models.**  
 
 ## Assignment 2
+Analyses data with information about how well costumers have managed their loans. The costumers are divided into two classes, good or bad borrowers, that has 19 different potential features.
 
 ### 2.1
-
+To start with, data is splitted into train, validation and test. 
 ```{r, echo=FALSE}
 creditScore <- read.csv("creditscoring.csv", sep=";", header = TRUE) 
 
@@ -124,24 +133,32 @@ id=sample(1:n, floor(n*0.5))
 valid=test[id,]
 test=test[-id,]
 ```
-**report the misclassification rates for the training and test data. Choose the measure providing the better results for the following steps.**  
+
 
 ### 2.2
 
 ```{r, echo=FALSE, warning=FALSE}
 library(tree)
 # a) - deviance
+# train
 deviFit <- tree(good_bad~., data=train, split="deviance")
 #plot(deviFit)
 #text(deviFit, pretty=0)
 #deviFit
-summary(deviFit)
+devi_summary <- summary(deviFit)
+devi_summary$misclass[1] / devi_summary$misclass[2]
+
+
 # b) gini index
+# train
 giniFit <- tree(good_bad~., data=train, split="gini")
-summary(giniFit)
+gini_summary <- summary(giniFit)
+gini_summary$misclass[1] / gini_summary$misclass[2]
 
 # Lower misclassification for deviance
 ```
+**report the misclassification rates for the training and test data. Choose the measure providing the better results for the following steps.**  
+For the
 
 
 ### 2.3
