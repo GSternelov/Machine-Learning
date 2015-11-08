@@ -71,7 +71,14 @@ if(pred_logi[,4][i] <0.5){
 }else{
   pred_logi[,4][i] = 1
 } }
-  
+
+for (i in 1:length(pred_logi[,4])){
+  if(pred_logi[,4][i] == 0){
+    pred_logi[,4][i] = "Female"
+  }else{
+    pred_logi[,4][i] = "Male"
+  } }
+
 ggplot(pred_logi, aes(y=aussieCrab.CL, x=aussieCrab.RW)) + 
   geom_point(aes(color=pred_logi[,4],shape=aussieCrab.sex), size=4) +
   geom_abline(intercept = -2.94, slope=2.713, colour="red")
@@ -104,12 +111,18 @@ plot(deviFit)
 text(deviFit, pretty=0)
 deviFit
 summary(deviFit)
+deviPred <- predict(deviFit, newdata=test, type="class")
+deviTable <- table(test$good_bad, deviPred)
+(deviTable [2,1] + deviTable[1,2]) / sum(diag(deviTable))
+
 # b) gini index
 giniFit <- tree(good_bad~., data=train, split="gini")
 gini_summary <- summary(giniFit)
 gini_summary$misclass[1] / gini_summary$misclass[2]
 
-predict(giniFit, newdata=test)
+giniPred <- predict(giniFit, newdata=test, type="class")
+giniTable <- table(test$good_bad, giniPred)
+(giniTable [2,1] + giniTable[1,2]) / sum(diag(giniTable))
 
 # Lower misclassification for deviance
 

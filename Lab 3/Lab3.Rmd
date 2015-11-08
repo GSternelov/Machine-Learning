@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Machine Learning - Lab 3"
 author: "Gustav Sternelöv"
-date: "Tuesday, November 03, 2015"
+date: "Sunday, November 08, 2015"
 output:
   pdf_document:
     fig_height: 4
@@ -66,11 +66,10 @@ for(i in 1:200){
 
 ```
 
-**extract the discriminant functions**  
+ 
 The respective discriminant function for males and females looks as follows:
-delta_male (x) = $$x^T\sum^-1$$
-
-
+$$\delta(x)_{male} = x^T\Sigma^{-1} \mu_{male} - \frac{1}{2} \mu^T_{male}\Sigma^{-1} \mu_{male}+ log \pi_{male} = x^T w_i - w_{0male}$$
+$$\delta(x)_{female} = x^T\Sigma^{-1}$$
 
 And the decision boundary is given by the this expression : CL = 2.91RW - 5.06  
 
@@ -105,22 +104,30 @@ if(pred_logi[,4][i] <0.5){
 }else{
   pred_logi[,4][i] = 1
 } }
-  
+
+for (i in 1:length(pred_logi[,4])){
+  if(pred_logi[,4][i] == 0){
+    pred_logi[,4][i] = "Female"
+  }else{
+    pred_logi[,4][i] = "Male"
+  } }
+
 ggplot(pred_logi, aes(y=aussieCrab.CL, x=aussieCrab.RW)) + 
   geom_point(aes(color=pred_logi[,4],shape=aussieCrab.sex), size=4) +
   geom_abline(intercept = -2.94, slope=2.713, colour="red")
+
 
 #table(pred_logi[,4], pred_logi$aussieCrab.sex)
 ```
  
 The decision boundary for the logistic regression model: CL = 2.713RW - 2.94  
-The obtained result with logistic regression is very similar to the result given with the *lda* model. For both models seven observations has been misclassified, and even though the decision boundaries are different it is first and foremost at the bottom left of the graph the misclassified observations can be found. A comparsion of the lines for the two models decision boundaries gives that the line for the logistic model is slightly shifted to the left compared to the line for the *lda* model. 
+The obtained result with logistic regression is very similar to the result given with the *lda* model. For both models seven observations has been misclassified, and even though the decision boundaries are different it is first and foremost at the bottom left of the graph the misclassified observations can be found. A comparsion of the lines for the two models decision boundaries gives that the line for the logistic model is slightly shifted to the right compared to the line for the *lda* model. 
 
 ## Assignment 2
 For the second assignment the analyzed data contains information about how well costumers have managed their loans. The costumers are divided into two classes, good or bad borrowers, and there is 19 different potential features that can be used for classifying.
 
-### 2.1
-To start with, data is splitted into train, validation and test. 
+### 2.1 - 2,2
+To start with, data is splitted into a training, validation and test data set. 
 ```{r, echo=FALSE}
 creditScore <- read.csv("creditscoring.csv", sep=";", header = TRUE) 
 
@@ -140,8 +147,6 @@ test=test[-id,]
 ```
 
 
-### 2.2
-
 ```{r, echo=FALSE, warning=FALSE}
 library(tree)
 # a) - deviance
@@ -151,19 +156,22 @@ deviFit <- tree(good_bad~., data=train, split="deviance")
 #text(deviFit, pretty=0)
 #deviFit
 devi_summary <- summary(deviFit)
-devi_summary$misclass[1] / devi_summary$misclass[2]
-
+deviPred <- predict(deviFit, newdata=test, type="class")
+deviTable <- table(test$good_bad, deviPred)
 
 # b) gini index
 # train
 giniFit <- tree(good_bad~., data=train, split="gini")
 gini_summary <- summary(giniFit)
-gini_summary$misclass[1] / gini_summary$misclass[2]
+giniPred <- predict(giniFit, newdata=test, type="class")
+giniTable <- table(test$good_bad, giniPred)
 
 # Lower misclassification for deviance
 ```
-**report the misclassification rates for the training and test data. Choose the measure providing the better results for the following steps.**  
-For training data with deviance as 
+Decision tree is the first classification method used to classify the costumers. When a decision tree is fitted one of the choices is which impurity measure to use. Here two different models, one with deviance and one with gini as measure, is compared.  
+
+For training data with deviance as measure of impurity the misclassification rate is `r devi_summary$misclass[1] / devi_summary$misclass[2]` and for test data the misclassification rate is `r (deviTable [2,1] + deviTable[1,2]) / sum(diag(deviTable))`. With gini as impurity measure the rate is `r gini_summary$misclass[1] / gini_summary$misclass[2]` for training data and `r (giniTable [2,1] + giniTable[1,2]) / sum(diag(giniTable))` for test data.
+Since the misclassification rate is lower in the first case deviance is the chosen measure for the upcoming steps. 
 
 
 ### 2.3
@@ -194,7 +202,6 @@ table(test$good_bad, NewFit)
 
 
 ### 2.4
-
 ```{r, echo=FALSE, warning=FALSE}
 library(e1071)
 # bayes classifier based on training data
@@ -203,14 +210,23 @@ bayesFit <- naiveBayes(good_bad~., data=train)
 bayesPredTrain <- predict(bayesFit, newdata=train)
 bayesPredTest <- predict(bayesFit, newdata=test)
 # confusion matrices for train and test
-bayesTrain <-table(bayesPredTrain, train$good_bad)
-bayesTest <- table(bayesPredTest, test$good_bad)
-table(bayesPredTrain, train$good_bad)
-table(bayesPredTest, test$good_bad)
+bayesTrain <-table(train$good_bad, bayesPredTrain)
+bayesTest <- table(test$good_bad, bayesPredTest)
+```
+
+In 2.4 the classification of the costumers is performed with the Naive Bayes classifier. The first of the tables below gives the confusion matrix for training data and the second for test data. For training data the misclassification rate is `r (bayesTrain [2,1] + bayesTrain[1,2]) / sum(diag(bayesTrain))` and for test data it is `r (bayesTest [2,1] + bayesTest[1,2]) / sum(diag(bayesTest))`.  
+
+```{r, echo=FALSE}
+bayesTrain
+bayesTest
 ```
 
 ### 2.5
-Repeating 2.4 but with a defined loss matrix. 
+Naive Bayes classification is again used, but now with a loss function defiend as following:  
+
+$$ L = \begin{array} {rrr}good \\bad \end{array}
+\left[\begin{array} {rrr} 0 & 1 \\ 10 & 0 \end{array}\right] $$
+With this function the confusion matrices seen below is obtained for train and test data. The misclassification rate for training data is ... and for test data...
 ```{r, echo=FALSE}
 # Repeating 2.4 but with a defined loss matrix. 
 raws <- data.frame(predict(bayesFit, newdata=train, type="raw"))
