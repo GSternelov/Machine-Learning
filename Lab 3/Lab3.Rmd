@@ -2,7 +2,10 @@
 title: "Introduction to Machine Learning - Lab 3"
 author: "Gustav Sternelöv"
 date: "Tuesday, November 03, 2015"
-output: pdf_document
+output:
+  pdf_document:
+    fig_height: 4
+    fig_width: 7
 ---
 
 ## Assignment 1
@@ -19,8 +22,8 @@ ggplot(aussieCrab, aes(y=CL, x=RW)) + geom_point(aes(color=sex), size=3)
 
 ```
 
-**Do you think that this data is easy to classify by linear discriminant analysis?**  
-For values of RW higher than 12.5 and values of CL higher than 30 this data should be easy to classify by linear discriminant analysis. For lower values the obseervations lies closer and it will problaby be harder to find a decision boundary that classifies all those observations correctly. 
+
+For values of RW higher than 12.5 and values of CL higher than 30 this data should be easy to classify by linear discriminant analysis. For lower values the obseervations lies closer and it will problaby be harder to find a linear decision boundary that classifies all those observations correctly. 
 
 ### 1.2
 
@@ -63,15 +66,19 @@ for(i in 1:200){
 
 ```
 
-**extract the discriminant functions and equation of the decision boundary.**  
+**extract the discriminant functions**  
+The respective discriminant function for males and females looks as follows:
+delta_male (x) = $$x^T\sum^-1$$
 
-Decision boundary : CL = 2.91RW - 5.06  
+
+
+And the decision boundary is given by the this expression : CL = 2.91RW - 5.06  
 
 ### 1.3
 In the following plot the observed values of RW and CL are visualized. Colours are given after the classification label and shape after the true class for the observations. The red line gives the decision boundary.  
 
 ```{r, echo=FALSE}
-table(classif, aussieCrab$sex)
+#table(classif, aussieCrab$sex)
 lda_class <- data.frame(aussieCrab, classif)
 
 ggplot(lda_class, aes(y=CL, x=RW)) + 
@@ -80,39 +87,37 @@ ggplot(lda_class, aes(y=CL, x=RW)) +
 
 ```
 
-**Comment on the quality of fit.**  
-The fit is pretty god. Only 7 of 200 observations is classified wrongly, and as expected most of these observations are find at the bottom left of the plot. 
+The fit is considered to be pretty god. Only 7 of 200 observations is classified wrongly, and as expected most of these observations are find at the bottom left of the plot. 
 
 ### 1.4
 
 Another method to classify the observations are by a logistic regression model. In the graph below the classifications are plotted in the same way as in 1.3.  
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 logi_class <- glm(sex~RW+CL,data=aussieCrab, family=binomial())
-summary(logi_class)
-exp(coef(logi_class))
+#summary(logi_class)
+#exp(coef(logi_class))
 pred_logi <- data.frame(aussieCrab$RW,aussieCrab$CL,aussieCrab$sex , predict(logi_class, type="response"))
 
 for (i in 1:length(pred_logi[,4])){
 if(pred_logi[,4][i] <0.5){
-  pred_logi[,4][i] = "Female"
+  pred_logi[,4][i] = 0
 }else{
-  pred_logi[,4][i] = "Male"
+  pred_logi[,4][i] = 1
 } }
   
 ggplot(pred_logi, aes(y=aussieCrab.CL, x=aussieCrab.RW)) + 
   geom_point(aes(color=pred_logi[,4],shape=aussieCrab.sex), size=4) +
   geom_abline(intercept = -2.94, slope=2.713, colour="red")
 
-table(pred_logi[,4], pred_logi$aussieCrab.sex)
+#table(pred_logi[,4], pred_logi$aussieCrab.sex)
 ```
-
-**Compare this result with the LDA result.**  
-Decision boundary: CL = 2.713RW - 2.94  
-The obtained result with logistic regression is very similar to the result given with the *lda* model. **Something about which observations that has been misclassified, think there is some difference between the models.**  
+ 
+The decision boundary for the logistic regression model: CL = 2.713RW - 2.94  
+The obtained result with logistic regression is very similar to the result given with the *lda* model. For both models seven observations has been misclassified, and even though the decision boundaries are different it is first and foremost at the bottom left of the graph the misclassified observations can be found. A comparsion of the lines for the two models decision boundaries gives that the line for the logistic model is slightly shifted to the left compared to the line for the *lda* model. 
 
 ## Assignment 2
-Analyses data with information about how well costumers have managed their loans. The costumers are divided into two classes, good or bad borrowers, that has 19 different potential features.
+For the second assignment the analyzed data contains information about how well costumers have managed their loans. The costumers are divided into two classes, good or bad borrowers, and there is 19 different potential features that can be used for classifying.
 
 ### 2.1
 To start with, data is splitted into train, validation and test. 
@@ -158,7 +163,7 @@ gini_summary$misclass[1] / gini_summary$misclass[2]
 # Lower misclassification for deviance
 ```
 **report the misclassification rates for the training and test data. Choose the measure providing the better results for the following steps.**  
-For the
+For training data with deviance as 
 
 
 ### 2.3
