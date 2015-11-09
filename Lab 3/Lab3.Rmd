@@ -121,7 +121,7 @@ ggplot(pred_logi, aes(y=aussieCrab.CL, x=aussieCrab.RW)) +
 ```
  
 The decision boundary for the logistic regression model: CL = 2.713RW - 2.94  
-The obtained result with logistic regression is very similar to the result given with the *lda* model. For both models seven observations has been misclassified, and even though the decision boundaries are different it is first and foremost at the bottom left of the graph the misclassified observations can be found. A comparsion of the lines for the two models decision boundaries gives that the line for the logistic model is slightly shifted to the right compared to the line for the *lda* model. 
+The obtained result with logistic regression is very similar to the result given with the *lda* model. For both models seven observations has been misclassified, and even though the decision boundaries are different it is first and foremost at the bottom left of the graph the misclassified observations can be found. A comparsion of the lines for the two models decision boundaries gives that the line for the logistic model is slightly shifted because . 
 
 ## Assignment 2
 For the second assignment the analyzed data contains information about how well costumers have managed their loans. The costumers are divided into two classes, good or bad borrowers, and there is 19 different potential features that can be used for classifying.

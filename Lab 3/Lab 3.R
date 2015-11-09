@@ -5,7 +5,7 @@ aussieCrab <- read.csv("Lab 3/australian-crabs.csv", sep=",", header = TRUE)
 
 # 1.1
 library(ggplot2)
-ggplot(aussieCrab, aes(y=RW, x=CL)) + geom_point(aes(color=sex), size=3)
+ggplot(aussieCrab, aes(y=CL, x=RW)) + geom_point(aes(color=sex), size=3)
 
 # Is this data easy to classify by linear discriminant analysis?
 
@@ -148,6 +148,7 @@ summary(finalTree)
 # Model tested on test data
 NewFit <- predict(finalTree, newdata=test, type="class")
 table(test$good_bad, NewFit)
+plot(finalTree)
 text(finalTree, pretty=0)
 
 # 2.4 Naive-bayes
