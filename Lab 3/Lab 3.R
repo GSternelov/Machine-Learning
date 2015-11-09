@@ -141,13 +141,14 @@ for (i in 2:15){
 plot(2:15, trainScore[2:15], type="b", col="red", ylim=c(250,550))
 points(2:15, testScore[2:15], type="b", col="blue")
 # Which is the optimal number of leaves?
-# A try with optimal number of leaves set to 12
-finalTree <- prune.tree(deviFit, best=12)
+# A try with optimal number of leaves set to 4
+finalTree <- prune.tree(deviFit, best=4)
 # The variables used
 summary(finalTree)
 # Model tested on test data
 NewFit <- predict(finalTree, newdata=test, type="class")
 table(test$good_bad, NewFit)
+text(finalTree, pretty=0)
 
 # 2.4 Naive-bayes
 library(e1071)

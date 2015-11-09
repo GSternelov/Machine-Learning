@@ -175,6 +175,11 @@ Since the misclassification rate is lower in the first case deviance is the chos
 
 
 ### 2.3
+Red line is value for training data and blue line for test data. If the optimal number of leaves is set to 4, has lowest score, the optimal tree has a depth of 3 (?) and includes the variables savings, duration and history. 
+
+**Interpret the information provided by the tree structure. **
+
+Misclassification rate is 0.251 for training data and 0.256 for test data. Compared to the unpruned tree the rates its significantly lower for the pruned tree. 
 
 ```{r, echo=FALSE}
 trainScore <- rep(0,15)
@@ -192,12 +197,12 @@ plot(2:15, trainScore[2:15], type="b", col="red", ylim=c(250,550))
 points(2:15, testScore[2:15], type="b", col="blue")
 # Which is the optimal number of leaves?
 # A try with optimal number of leaves set to 12
-finalTree <- prune.tree(deviFit, best=12)
+finalTree <- prune.tree(deviFit, best=4)
 # The variables used
 summary(finalTree)
 # Model tested on test data
 NewFit <- predict(finalTree, newdata=test, type="class")
-table(test$good_bad, NewFit)
+NewFitTable <- table(test$good_bad, NewFit)
 ```
 
 
@@ -214,7 +219,7 @@ bayesTrain <-table(train$good_bad, bayesPredTrain)
 bayesTest <- table(test$good_bad, bayesPredTest)
 ```
 
-In 2.4 the classification of the costumers is performed with the Naive Bayes classifier. The first of the tables below gives the confusion matrix for training data and the second for test data. For training data the misclassification rate is `r (bayesTrain [2,1] + bayesTrain[1,2]) / sum(diag(bayesTrain))` and for test data it is `r (bayesTest [2,1] + bayesTest[1,2]) / sum(diag(bayesTest))`.  
+In 2.4 the classification of the costumers is performed with the Naive Bayes classifier. The first of the tables below gives the confusion matrix for training data and the second for test data. For training data the misclassification rate is `r (bayesTrain [2,1] + bayesTrain[1,2]) / sum(diag(bayesTrain))` and for test data it is `r (bayesTest [2,1] + bayesTest[1,2]) / sum(diag(bayesTest))`. Compared to the results in 2.3 these rates are higher by quite a clear margin. 
 
 ```{r, echo=FALSE}
 bayesTrain
@@ -255,4 +260,5 @@ for (i in 1:250){
 table(test$good_bad, preds)
 
 ```
-
+The misclassification rate for training data is ... and for test data ... . This implies that the Naive Bayes classification under the assumption of the loss function stated above is better/worse than the classifier used in 2.4. 
+The loss function changes the decision boundary for the classification and thereby also the probability for different types of errors. This can be seen in the results were the amount of costumers that is wrongly classified as... is low and the amount of costumers wrongly classified as... is much higher now. 
