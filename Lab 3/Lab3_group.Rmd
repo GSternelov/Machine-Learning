@@ -156,7 +156,7 @@ We see that the slope is a little bit less steep in the logistic regression deci
 ### 2.1 - 2.2
 
 
-We use two measures of node impurity. For fittree1 we use split = "deviance" which essentialy minimizes tree information entropy to pick the tree splits, and for fittree2 we use split = "gini", which minimizes tree Gini impurity. We find misclassification rates for the test data for the two trees.
+We use two measures of node impurity. For the first tree we use split = "deviance" which essentialy minimizes tree information entropy to pick the tree splits, and for second tree we use split = "gini", which minimizes tree Gini impurity. We find misclassification rates for the test data for the two trees.
 
 Deviance: Misclassification rate for the training and test data, respectively.
 
@@ -197,16 +197,16 @@ misclass(test, tree.gini, type="class")
 ```
 
 
-We see that the impurity measure of information entropy is better, so we will continue to evaluate the decision tree fittree1.
+We see that the impurity measure of information entropy is better, so we will continue to evaluate the first decision tree.
 
 
 
 ### 2.3
-We are going to prune the tree fittree1 by minimizing
+We are going to prune the chosen tree by minimizing
 
 $$\mbox{Deviance of tree} + \lambda|T|$$
 
-where $|T|$ is the number of terminal nodes and $\lambda$ is an algorithmically determined cost parameter. Below you will find the plot of deviance of the tree for training data and for validation data against number of terminal nodes in the greedily and recursively pruned subtree of fittree1.
+where $|T|$ is the number of terminal nodes and $\lambda$ is an algorithmically determined cost parameter. Below you will find the plot of deviance of the tree for training data and for validation data against number of terminal nodes in the greedily and recursively pruned subtree of the original tree.
 
 
 
@@ -225,8 +225,7 @@ points(2:15, valid.score[2:15], type="b", col="purple")
 legend("bottomleft",c("training","validation"),col=c("black","purple"), lwd=c(1,1))
 
 ```
-The purple line for validation data have the lower score than the training data. When the number if leaves is equal to four the lowest score is obtained. Therefore this plot
-suggests that the optimal tree for this dataset should have four leaves.
+The purple line for validation data have the lower score than the training data. When the number if leaves is equal to four the lowest score is obtained. Therefore this plot suggests that the optimal tree for this dataset should have four leaves.
 
 ```{r, echo=FALSE}
 finalTree <- prune.tree(tree.dev, best=4)
@@ -235,16 +234,17 @@ finalTree <- prune.tree(tree.dev, best=4)
 NewFit <- predict(finalTree, newdata=test, type="class")
 plot(finalTree)
 text(finalTree, pretty=0)
-
+NewFitTable <- table(test$good_bad, NewFit)
 ```
-The depth is 3. Uses tha variables savings, duration and history. 
-Much savings is good.
-Long duration is bad.
-Good history is good. 
+The tree presented above has a depth of 3 and uses 3 variables.  
+We see from the tree that the most important factor is that a borrower should have a high amount of savings. Further a loan of shorter duration are better credit risks than loans of longer duration and a good history is preferable. 
 
-The misclassification for test data is ... 
+The misclassification rate for test data is `r (NewFitTable [2,1] + NewFitTable[1,2]) / sum((NewFitTable))`.
 
 ### 2.4
+
+
+In 2.4 the classification of the costumers is performed with the Naive Bayes classifier. The first of the tables below gives the confusion matrix for training data and the second for test data.
 
 ```{r, echo=FALSE}
 library(e1071)
@@ -253,13 +253,78 @@ fitBayes<-naiveBayes(good_bad~., data=train)
 
 YfitBayesTrain<-predict(fitBayes, newdata=train)
 YfitBayesTrain <- table(YfitBayesTrain,train$good_bad)
-
+YfitBayesTrain
 YfitBayesTest<-predict(fitBayes, newdata=test)
 YfitBayesTest <- table(YfitBayesTest,test$good_bad)
+YfitBayesTest
 ```
 
-In 2.4 the classification of the costumers is performed with the Naive Bayes classifier. The first of the tables below gives the confusion matrix for training data and the second for test data. For training data the misclassification rate is `r (YfitBayesTrain [2,1] + YfitBayesTrain[1,2]) / sum(diag(YfitBayesTrain))` and for test data it is `r (YfitBayesTest [2,1] + YfitBayesTest[1,2]) / sum(diag(YfitBayesTest))`. 
+
+For training data the misclassification rate is `r (YfitBayesTrain [2,1] + YfitBayesTrain[1,2]) / sum((YfitBayesTrain))` and for test data it is `r (YfitBayesTest [2,1] + YfitBayesTest[1,2]) / sum((YfitBayesTest))`. The misclassification rates appear to be higher than for the unpruned decision trees.
 
 ### 2.5
+We now use a loss matrix $L$, 
+
+$$L = \bordermatrix{~ & good & bad \cr
+                  good & 0 & 1 \cr
+                  bad & 10 & 0 \cr}$$
+                  
+where the rows are truth values and the columns are classified values in the naive bayes classifier, train a model based on training data and find the confusion matrices generated for the training data and test data.
+
+Training data: Confusion matrix and misclassification rate
+
+```{r, echo=FALSE}
+# Repeating 2.4 but with a defined loss matrix. 
+raws <- data.frame(predict(fitBayes, newdata=train, type="raw"))
+
+preds <- 0
+for (i in 1:500){
+  if((raws[i,1]/raws[i,2]) > 0.1){
+    preds[i] = "bad"
+  }else{
+    preds[i] ="good"
+  }  
+}
+
+table(train$good_bad, preds)
+
+```
+
+
+Test data: Confusion matrix and misclassification rate
+```{r, echo=FALSE}
+
+rawTest <- predict(fitBayes, newdata=test, type="raw")
+preds <- 0
+for (i in 1:250){
+  if((rawTest[i,1]/rawTest[i,2]) > 0.1){
+    preds[i] = "bad"
+  }else{
+    preds[i] ="good"
+  }  
+}
+
+table(test$good_bad, preds)
+
+```
+
+
+The misclassification rate for training and test data are higher compared to the
+naive bayes classifier with a neutral loss function. When looking at the confusion matrix, it can be seen that the value of false "good" and true
+"good" for this result is much lower while false "bad" and true "bad" increase. This is due to the fact
+that loss matrix elements are changed to the given values above - a loss of 10 for the false "good".
+In most situations, we want to minimize as much as possible the number of falsely predicted "good"
+(customers are bad in mananging their loan but were predicted as having a good management) as the consequences are ten times more costly than the falsely predicted "bad". It would be better to make fewer mistakes of
+this kind, even if this was at the expense of predicting more falsely predicted "bad". Thus, the elevation in
+misclassification rate is the result of trying to minimize the falsely predicted "good".
+
+## Contribution from group members
+All group members has contributed to the assignments with either code, text, plots or participation in discussions.  
+In 2.3 for the tree we got slightly different results. The tree presented in the report is Gustav's. 
+
+## Appendix
+```{r code=readLines(knitr::purl('C:/Users/Gustav/Documents/Machine-Learning/Lab 3/Lab3_group.Rmd', documentation = 0)), eval = FALSE}
+
+```
 
 
