@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Machine Learning - Lab 3"
 author: "Gustav Sternelöv"
-date: "Sunday, November 08, 2015"
+date: "Tuesday, November 10, 2015"
 output:
   pdf_document:
     fig_height: 4
@@ -66,10 +66,21 @@ for(i in 1:200){
 
 ```
 
- 
-The respective discriminant function for males and females looks as follows:
-$$\delta(x)_{male} = x^T\Sigma^{-1} \mu_{male} - \frac{1}{2} \mu^T_{male}\Sigma^{-1} \mu_{male}+ log \pi_{male} = x^T w_i - w_{0male}$$
-$$\delta(x)_{female} = x^T\Sigma^{-1}$$
+The discriminant function can be written as: 
+$$\delta(x)_{k} = x^T\Sigma^{-1} \mu_{k} - \frac{1}{2} \mu^T_{k}\Sigma^{-1} \mu_{k}+ log \pi_{k} = x^T w_i - w_{0k}$$
+And the respective discriminant function for males and females looks as follows:
+\[\delta(x)_{male}=x^T0.029410201\bigg(\begin{array}{c}
+11.990\\32.851\
+\end{array}\bigg)-\frac{1}{2}\begin{matrix}\big(11.990 & 32.851\big)\end{matrix}0.029410201\bigg(\begin{array}{c}
+11.990\\32.851\
+\end{array}\bigg)+log(0.50) \] \
+
+\[\delta(x)_{female}=x^T0.029410201\bigg(\begin{array}{c}
+13.487\\31.360\
+\end{array}\bigg)-\frac{1}{2}\begin{matrix}\big(13.487 & 31.360\big)\end{matrix}0.029410201\bigg(\begin{array}{c}
+13.487\\31.360\
+\end{array}\bigg)+log(0.50) \] \
+
 
 And the decision boundary is given by the this expression : CL = 2.91RW - 5.06  
 
@@ -126,7 +137,7 @@ The obtained result with logistic regression is very similar to the result given
 ## Assignment 2
 For the second assignment the analyzed data contains information about how well costumers have managed their loans. The costumers are divided into two classes, good or bad borrowers, and there is 19 different potential features that can be used for classifying.
 
-### 2.1 - 2,2
+### 2.1 - 2.2
 To start with, data is splitted into a training, validation and test data set. 
 ```{r, echo=FALSE}
 creditScore <- read.csv("creditscoring.csv", sep=";", header = TRUE) 
@@ -170,18 +181,14 @@ giniTable <- table(test$good_bad, giniPred)
 ```
 Decision tree is the first classification method used to classify the costumers. When a decision tree is fitted one of the choices is which impurity measure to use. Here two different models, one with deviance and one with gini as measure, is compared.  
 
-For training data with deviance as measure of impurity the misclassification rate is `r devi_summary$misclass[1] / devi_summary$misclass[2]` and for test data the misclassification rate is `r (deviTable [2,1] + deviTable[1,2]) / sum(diag(deviTable))`. With gini as impurity measure the rate is `r gini_summary$misclass[1] / gini_summary$misclass[2]` for training data and `r (giniTable [2,1] + giniTable[1,2]) / sum(diag(giniTable))` for test data.
+For training data with deviance as measure of impurity the misclassification rate is `r devi_summary$misclass[1] / devi_summary$misclass[2]` and for test data the misclassification rate is `r (deviTable [2,1] + deviTable[1,2]) / sum((deviTable))`. With gini as impurity measure the rate is `r gini_summary$misclass[1] / gini_summary$misclass[2]` for training data and `r (giniTable [2,1] + giniTable[1,2]) / sum((giniTable))` for test data.
 Since the misclassification rate is lower in the first case deviance is the chosen measure for the upcoming steps. 
 
 
 ### 2.3
-Red line is value for training data and blue line for test data. If the optimal number of leaves is set to 4, has lowest score, the optimal tree has a depth of 3 (?) and includes the variables savings, duration and history. 
+The chosen tree is pruned by looking on the dependence of deviances for the training and validation set. This is shown by the plot below where values for training data are visualized by the red line and values for the validation set by the blue line.
 
-**Interpret the information provided by the tree structure. **
-
-Misclassification rate is 0.251 for training data and 0.256 for test data. Compared to the unpruned tree the rates its significantly lower for the pruned tree. 
-
-```{r, echo=FALSE}
+```{r,echo=FALSE}
 trainScore <- rep(0,15)
 testScore <- rep(0,15)
 
@@ -195,16 +202,24 @@ for (i in 2:15){
 
 plot(2:15, trainScore[2:15], type="b", col="red", ylim=c(250,550))
 points(2:15, testScore[2:15], type="b", col="blue")
-# Which is the optimal number of leaves?
-# A try with optimal number of leaves set to 12
+```
+
+When the number of leaves is equal to four the lowest score is obtained. This implies that the optimal number of leaves is four.  
+
+```{r, echo=FALSE}
 finalTree <- prune.tree(deviFit, best=4)
 # The variables used
-summary(finalTree)
+plot(finalTree)
+text(finalTree, pretty=0)
 # Model tested on test data
 NewFit <- predict(finalTree, newdata=test, type="class")
 NewFitTable <- table(test$good_bad, NewFit)
 ```
 
+The tree presented above has a depth of 3 and uses 3 variables.  
+We see from the tree that the most important factor is that a borrower should have a high amount of savings. Further a loan of shorter duration are better credit risks than loans of longer duration and a good history is preferable. 
+
+The misclassification rate for test data is `r (NewFitTable [2,1] + NewFitTable[1,2]) / sum((NewFitTable))`.
 
 ### 2.4
 ```{r, echo=FALSE, warning=FALSE}
@@ -219,7 +234,7 @@ bayesTrain <-table(train$good_bad, bayesPredTrain)
 bayesTest <- table(test$good_bad, bayesPredTest)
 ```
 
-In 2.4 the classification of the costumers is performed with the Naive Bayes classifier. The first of the tables below gives the confusion matrix for training data and the second for test data. For training data the misclassification rate is `r (bayesTrain [2,1] + bayesTrain[1,2]) / sum(diag(bayesTrain))` and for test data it is `r (bayesTest [2,1] + bayesTest[1,2]) / sum(diag(bayesTest))`. Compared to the results in 2.3 these rates are higher by quite a clear margin. 
+In 2.4 the classification of the costumers is performed with the Naive Bayes classifier. The first of the tables below gives the confusion matrix for training data and the second for test data. For training data the misclassification rate is `r (bayesTrain [2,1] + bayesTrain[1,2]) / sum((bayesTrain))` and for test data it is `r (bayesTest [2,1] + bayesTest[1,2]) / sum((bayesTest))`. Compared to the results in 2.3 these rates are higher.
 
 ```{r, echo=FALSE}
 bayesTrain
@@ -231,7 +246,8 @@ Naive Bayes classification is again used, but now with a loss function defiend a
 
 $$ L = \begin{array} {rrr}good \\bad \end{array}
 \left[\begin{array} {rrr} 0 & 1 \\ 10 & 0 \end{array}\right] $$
-With this function the confusion matrices seen below is obtained for train and test data. The misclassification rate for training data is ... and for test data...
+With this function the confusion matrices seen below is obtained for train and test data.  
+
 ```{r, echo=FALSE}
 # Repeating 2.4 but with a defined loss matrix. 
 raws <- data.frame(predict(bayesFit, newdata=train, type="raw"))
@@ -245,7 +261,8 @@ for (i in 1:500){
   }  
 }
 
-table(train$good_bad, preds)
+loss_train <- table(train$good_bad, preds)
+loss_train
 
 rawTest <- predict(bayesFit, newdata=test, type="raw")
 preds <- 0
@@ -257,8 +274,15 @@ for (i in 1:250){
   }  
 }
 
-table(test$good_bad, preds)
+loss_test <- table(test$good_bad, preds)
+loss_test
+```
+The misclassification rate for training data is`r (loss_train [2,1] + loss_train[1,2]) / sum((loss_train))` and for test data `r (loss_test [2,1] + loss_test[1,2]) / sum((loss_test))`. This implies that the Naive Bayes classification under the assumption of the loss function stated above is worse in terms of misclassification rate than the classifier used in 2.4. 
+The loss function changes the decision boundary for the classification and thereby also the probability for different types of errors. This can be seen in the results for test data were the amount of costumers that is wrongly classified as good is low and the amount of costumers wrongly classified as bad is much higher now. 
+
+## Appendix
+### R-code
+```{r code=readLines(knitr::purl('C:/Users/Gustav/Documents/Machine-Learning/Lab 3/Lab3.Rmd', documentation = 0)), eval = FALSE}
 
 ```
-The misclassification rate for training data is ... and for test data ... . This implies that the Naive Bayes classification under the assumption of the loss function stated above is better/worse than the classifier used in 2.4. 
-The loss function changes the decision boundary for the classification and thereby also the probability for different types of errors. This can be seen in the results were the amount of costumers that is wrongly classified as... is low and the amount of costumers wrongly classified as... is much higher now. 
+

@@ -1,7 +1,7 @@
 ---
-title: "Lab 3 - Group report"
-author: "Araya, Caroline, Gustav Sternelöv, Thomas"
-date: "Monday, November 09, 2015"
+title: "Introduction to Machine Learning - Lab 3"
+author: "Araya Eamrurksiri, Caroline Svahn, Gustav Sternelöv, Thomas Zhang"
+date: "Tuesday, November 10, 2015"
 output:
   pdf_document:
     fig_height: 4
@@ -118,8 +118,7 @@ table(actual=aussieCrab$sex, predict=classif)
 
 ```
 
-The red line indicates the decision boundary between female and male group. From looking at this plot,
-there are some misclassified data happened. The blue triangle indictes group as male while the orange circle represents female. Other symbols than these two (the blue triangle or the orange circle) suggest that it is misclassified. For example, the first point located at the left of the plot is in orange circle. The original is in the female group but when using LDA it is classified into male group.
+The red line indicates the decision boundary between female and male group. From looking at this plot, some misclassified data can be spotted. The blue triangle indicates group as male while the orange circle represents female. Other symbols than these two (the blue triangle or the orange circle) suggest that it is misclassified. For example, the first point located at the left of the plot is in orange circle. The original is in the female group but when using LDA it is classified into male group.
 The quality of fit for using LDA is quite good. According to the confusion matrix which is given above, there are 7 observations which go into the wrong class.
 
 
@@ -161,6 +160,8 @@ We use two measures of node impurity. For the first tree we use split = "devianc
 Deviance: Misclassification rate for the training and test data, respectively.
 
 ```{r, echo=FALSE}
+
+# Assignment 2
 data <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 3/creditscoring.csv", sep=";", header = TRUE) 
 
 n=dim(data)[1]
@@ -287,6 +288,7 @@ for (i in 1:500){
 }
 
 table(train$good_bad, preds)
+(table(train$good_bad, preds) [2,1] + table(train$good_bad, preds)[1,2]) / sum((table(train$good_bad, preds)))
 
 ```
 
@@ -305,6 +307,7 @@ for (i in 1:250){
 }
 
 table(test$good_bad, preds)
+(table(test$good_bad, preds) [2,1] + table(test$good_bad, preds)[1,2]) / sum((table(test$good_bad, preds)))
 
 ```
 
@@ -320,7 +323,6 @@ misclassification rate is the result of trying to minimize the falsely predicted
 
 ## Contribution from group members
 All group members has contributed to the assignments with either code, text, plots or participation in discussions.  
-In 2.3 for the tree we got slightly different results. The tree presented in the report is Gustav's. 
 
 ## Appendix
 ```{r code=readLines(knitr::purl('C:/Users/Gustav/Documents/Machine-Learning/Lab 3/Lab3_group.Rmd', documentation = 0)), eval = FALSE}

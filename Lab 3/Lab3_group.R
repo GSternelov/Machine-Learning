@@ -66,6 +66,8 @@ pred_logi$pred <- pred[,2]
 ggplot(pred_logi, aes(y=aussieCrab.CL, x=aussieCrab.RW)) + 
   geom_point(aes(color=pred,shape=aussieCrab.sex), size=4) +
   geom_abline(intercept = -2.94, slope=2.713, colour="red")
+
+# Assignment 2
 data <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 3/creditscoring.csv", sep=";", header = TRUE) 
 
 n=dim(data)[1]
@@ -138,6 +140,7 @@ for (i in 1:500){
 }
 
 table(train$good_bad, preds)
+(table(train$good_bad, preds) [2,1] + table(train$good_bad, preds)[1,2]) / sum((table(train$good_bad, preds)))
 
 
 rawTest <- predict(fitBayes, newdata=test, type="raw")
@@ -151,5 +154,6 @@ for (i in 1:250){
 }
 
 table(test$good_bad, preds)
+(table(test$good_bad, preds) [2,1] + table(test$good_bad, preds)[1,2]) / sum((table(test$good_bad, preds)))
 
 ## 
