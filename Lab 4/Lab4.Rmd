@@ -14,16 +14,19 @@ state <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 4/State.csv", 
 ```
 
 ### 1.1
+The variables analyzed in the first assignment are MET (Percentage of population living in standard metropolitan areas) and EX (Per capita state and local public expenditures ($)). The latter is the target variable and the former the input variable. A plot of MET versus EX can be seen below. 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 library(ggplot2)
 ggplot(state, aes(x=MET, y=EX)) + geom_point()
 ```
 
+An analyze of the graph gives that for low values and for high values of MET the value of EX is high. An interpretation of this is that models who creates linear decision boundaries probably will result in bad fits. Another type of model, one that can capture a nonlinear pattern is therefore thought to be needed in this case.  
 
 ### 1.2
+A regression tree model is fitted to the data descirbed in 1.1. The number of leaves are selected by cross-validation and the CV-score for different number of leaves is visualised by the following graph.
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 library(tree)
 set.seed(12345)
 fit2 <- tree(EX ~ MET, data=state, control=tree.control(nobs=48, minsize=2))
@@ -31,6 +34,7 @@ cv_fit <- cv.tree(fit2)
 plot(cv_fit$size, cv_fit$dev, type="b")
 ```
 
+The lowest CV-score is given when three leaves are selected. The original tree is therefore pruned until it only contains three leaves. This pruning of the original tree results in the following regression tree.  
 
 ```{r, echo=FALSE}
 pruneFit2 <- prune.tree(fit2, best=3)
@@ -38,20 +42,36 @@ plot(pruneFit2)
 text(pruneFit2, pretty=0)
 ```
 
+As can be seen by the visualisation of the tree above, low values of MET results in a high response value. The second split is for high values where a rather high response value is given for high values of MET. For values in between, higher than 7.7 and lower than 60.5, a lower response value is given.  
+The original data is then plotted against the fitted values and the residuals are plotted in a histogram.
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, include=FALSE}
 cv_pred <- predict(pruneFit2)
-par(mfrow=c(1,2))
-plot(state$MET, state$EX, col="blue")
-points(state$MET, cv_pred, col="red")
 fit2_resid <- state$EX - cv_pred
-hist(fit2_resid, breaks=14)   
-par(mfrow=c(1,1))
+myhist <- hist(fit2_resid, breaks=14) 
 ```
 
 
-### 1.3
+```{r, echo=FALSE}
+par(mfrow=c(1,2))
+plot(state$MET, state$EX, col="blue")
+points(state$MET, cv_pred, col="red")
+ 
+multiplier <- myhist$counts / myhist$density
+mydensity <- density(fit2_resid)
+mydensity$y <- mydensity$y * multiplier[1]
 
+plot(myhist)
+lines(mydensity)  
+par(mfrow=c(1,1))
+```
+
+That the model seem to be quite a bad fit is clearly shown by the plot over the fitted values against the original values. Since the variance for the predicted values is low and the bias is high the model is concluded to be underfitted.  
+
+Since the residuals are rather equally distributed over the x-axis they could be thought of as following a uniform distribution. 
+
+### 1.3
+For the selected regression tree model are 95 % confidence bands computed by using a non-parametric bootstrap. The confidence bands are plotted together with both the original and fitted values.  
 
 ```{r, echo=FALSE}
 # 1.3 
@@ -77,16 +97,18 @@ fit=prune.tree(fit2, best=3)
 priceP=predict(fit)
 
 plot(state$MET, state$EX, pch=21, bg="black", col="red")
-points(data2$MET,priceP,type="l", col="blue") #plot fitted line
+points(data2$MET,priceP,type="b", col="blue") #plot fitted line
 #plot cofidence bands
 points(data2$MET,e$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e$point[1,], type="l", col="red", lwd=2)
 
 ```
 
+The confidence bands are very bumpy, that is because...
+The conclusion must be that quite littlie knowledge about the expected response is gained by the model?
 
 ### 1.4
-
+When using a parametric bootstrap to compute the 95 % confidence and prediction bands for the regression tree model, the following bands can be plotted:
 
 ```{r, echo=FALSE, warning=FALSE}
 # Parametric bootstrap
@@ -110,7 +132,7 @@ e2=envelope(res)
 fit=prune.tree(fit2, best=3) 
 pred2=predict(fit)
 plot(state$MET, state$EX, pch=21, bg="black", col="red", ylim=c(100, 550))
-points(data2$MET,pred2,type="l", col="blue") #plot fitted line
+points(data2$MET,pred2,type="b", col="blue") #plot fitted line
 #plot cofidence bands
 points(data2$MET,e2$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e2$point[1,], type="l", col="red", lwd=2)
@@ -120,6 +142,140 @@ points(data2$MET,e2$point[1,], type="l", col="red", lwd=2)
 ### 1.5
 
 
-
 ## Assignment 2
+The data analysed in the second assignment consists of near-infrared spectra and viscosity levels for a collection of diesel fuels. The objective with the assignment is to examine how the measured spectra can be used in order to predict the viscosity. 
 
+### 2.1 
+A standard PCA with all features included is performed to determine how many principal components that are needed to explain at least 99% of the total variance. How much of the variation that is explained by each feature is presented with the following graph. 
+
+```{r,echo=FALSE}
+spectra <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 4/NIRSpectra.csv", sep=";")
+data_a <- spectra
+data_a$Viscosity=c()
+data_a$ID=c()
+res=prcomp(data_a)
+lambda=res$sdev^2
+#proportion of variation explained by each feature
+plot(sprintf("%2.3f",lambda/sum(lambda)*100), ylab="Variation explained (%)")
+```
+(Is the plot above the right one?)  
+
+The amount of principal components needed to explain at least 99% of the total variation is concluded to be two. The scores for the respective feature for these principal components are investigated more closely by the next plot. 
+
+
+```{r, echo=FALSE}
+# Scores in coordinates of PC1 and PC2
+plot(res$x[,1], res$x[,2], xlab="PC1", ylab="PC2")
+```
+
+A big cluster of points to the left in the graph. 
+A small bunch of points a little bit to the right of the big cluster. Some outlying points at the right end of the graph. The outlying values x-wise can be interpreted to be the features with high scores for PC1. The valeus with low or high values y-wise are features with high scores for PC2.  
+(Is this correct?)
+
+### 2.2
+The loadings of the components PC1 and PC2 are here visualised by so called trace plots. 
+
+```{r, echo=FALSE}
+U=res$rotation
+plot(U[,1], main="Traceplot, PC1")
+plot(U[,2],main="Traceplot, PC2")
+
+```
+
+For the first principal component, PC1, it can be seen that all of the factors seem to have significant effect on the component. For the second principal component, PC2, the majority of the factors are very close to zero. This implies that PC2 mainly is explained by those few factors whose loadings not are zero or close to zero.
+
+### 2.3
+The next model that is conducted is a Independent Component Analysis, ICA, with two components. 
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(fastICA)
+
+set.seed(12345)
+a <- fastICA(data_a, 2, alg.typ = "parallel", fun = "logcosh", alpha = 1,
+             method = "R", row.norm = FALSE, maxit = 200, tol = 0.0001, verbose = TRUE) #ICA
+
+```
+
+#### a)  
+
+The matrix W is presented by the table below. The role of the W matrix is 
+```{r,echo=FALSE}
+W_mat <- a$W
+W_mat
+```
+  
+  
+#### b)  
+
+The next matrix presented is W' and the role of this matrix is...
+The two columns of the W' matrix is here presented by trace plots.  
+
+```{r, echo=FALSE}
+KW_mat <- a$K %*% a$W
+# plot the columns as trace plots
+plot(KW_mat[,1], main="Traceplot, column1")
+plot(KW_mat[,2],main="Traceplot, column2")
+```
+When comparing with the trace plots in 2.2 it can be noted that a similar conclusion can be drawn for the respecitive component. For the frist component all factors have non-zero loadings. For the second component the majority of the factors have loadings close to zero and therfore only a few factors explains the component. 
+  
+#### c)  
+A score plot for the components in the ICA model   
+
+```{r, echo=FALSE}
+# The score plot
+plot(a$S[,1], a$S[,2])
+```
+A comparsion with the score plot in 2.1 gives that the scores for the components in the ICA model is rather similar to those for the first two components of the standard PCA.  
+
+
+### 2.4 - 2.5
+Before fitting a PCR and PLS model the data is divided into a training and a test set. The respective data set contains 50% each of the original data set.  
+A PCR model is fitted where the number of components in the model is selected by cross-validation. A low mean-square prediction error is wanted and the number of components that corresponds to the lowest error is chosen. To examine this further the dependence between the mean-square prediction error and the number of components is plotted.  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+dat <- as.matrix(spectra)
+n=dim(dat)[1]
+set.seed(12345)
+id=sample(1:n, floor(n*0.5))
+train=dat[id,]
+test=dat[-id,]
+
+library(pls)
+train <- data.frame(train[, 2:128])
+test <- data.frame(test[, 2:128])
+set.seed(12345)
+pcr.fit=pcr(Viscosity~., data=train, validation="CV")
+validationplot(pcr.fit,val.type="MSEP")
+
+```
+
+The value for the mean-square prediction error term is approximately the same for a quite longe range of components. For the number of components from about 25 up to around 60 it is a very slight difference between the mean-square prediction errors. Since there is no reason to include more components if they don't improve the results, a reasonable choice could be to select 25 components.  
+  
+  The test set is used to evaluate the selected, optimal, model with 25 components. This is done by calculating the mean-square error for the model when applied on the test set. 
+
+```{r, echo=FALSE}
+pcr.fit1=pcr(Viscosity~., 25,data=train, validation="none")
+pcr.pred <- predict(pcr.fit1, newdata=test, ncomp = 25)
+pcr.mse <- 1/length(test[,1]) * sum((test$Viscosity - pcr.pred)^2, na.rm=TRUE)
+pcr.mse
+```
+
+
+### 2.6
+The workflow for 2.5 is repeated in 2.6, with the difference that a PLS model is fitted instead of a PCR. 
+```{r, echo=FALSE}
+set.seed(12345)
+plsr.fit=plsr(Viscosity~., data=train, validation="CV")
+validationplot(plsr.fit,val.type="MSEP")
+plsr.fit1=plsr(Viscosity~., 12,data=train, validation="none")
+plsr.pred <- predict(plsr.fit1, newdata=test, ncomp = 12)
+plsr.mse <- 1/length(test[,1]) * sum((test$Viscosity - plsr.pred)^2, na.rm=TRUE)
+```
+The lowest mean-square prediction error is given when the number of components is equal to 12. When the model is used on test data the mean-square error is calculated to be equal to `r plsr.mse`. Compared to the mean-square error obtained for the PCR model so is the value slightly lower for the PLS model. The PLS model therefore seems to work equally well as the PCR model, even though it only uses 12 components compared to the 25 components used by the PCR model.  
+
+
+
+## Appendix
+### R-code
+```{r code=readLines(knitr::purl('C:/Users/Gustav/Documents/Machine-Learning/Lab 4/Lab4.Rmd', documentation = 0)), eval = FALSE}
+
+```
