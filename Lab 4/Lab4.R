@@ -76,6 +76,9 @@ points(data2$MET,pred2,type="b", col="blue") #plot fitted line
 #plot cofidence bands
 points(data2$MET,e2$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e2$point[1,], type="l", col="red", lwd=2)
+
+
+
 spectra <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 4/NIRSpectra.csv", sep=";")
 data_a <- spectra
 data_a$Viscosity=c()
@@ -99,9 +102,16 @@ a <- fastICA(data_a, 2, alg.typ = "parallel", fun = "logcosh", alpha = 1,
 W_mat <- a$W
 W_mat
 KW_mat <- a$K %*% a$W
+cor()
 # plot the columns as trace plots
-plot(KW_mat[,1], main="Traceplot, column1")
-plot(KW_mat[,2],main="Traceplot, column2")
+par(mfrow=c(3,2))
+plot(U[,1], main="Traceplot, PC1")
+plot(U[,2],main="Traceplot, PC2")
+plot(a$K[,1], main="Traceplot, K1")
+plot(a$K[,2],main="Traceplot, K2")
+plot(KW_mat[,1], main="Traceplot, KW1")
+plot(KW_mat[,2],main="Traceplot, KW2")
+
 # The score plot
 plot(a$S[,1], a$S[,2])
 dat <- as.matrix(spectra)
