@@ -21,7 +21,7 @@ library(ggplot2)
 ggplot(state, aes(x=MET, y=EX)) + geom_point()
 ```
 
-An analyze of the graph gives that for low values and for high values of MET the value of EX is high. An interpretation of this is that models who creates linear decision boundaries probably will result in bad fits. Another type of model, one that can capture a nonlinear pattern is therefore thought to be needed in this case.  
+An analyze of the graph gives that for low values and for high values of MET the value of EX is high. An interpretation of this is that models who creates a linear decision boundary probably will result in bad fits. Another type of model, one that can capture a nonlinear pattern is therefore thought to be needed in this case.  
 
 ### 1.2
 A regression tree model is fitted to the data descirbed in 1.1. The number of leaves are selected by cross-validation and the CV-score for different number of leaves is visualised by the following graph.
@@ -48,7 +48,7 @@ The original data is then plotted against the fitted values and the residuals ar
 ```{r, echo=FALSE, include=FALSE}
 cv_pred <- predict(pruneFit2)
 fit2_resid <- state$EX - cv_pred
-myhist <- hist(fit2_resid, breaks=14) 
+myhist <- hist(fit2_resid) 
 ```
 
 
@@ -66,12 +66,12 @@ lines(mydensity)
 par(mfrow=c(1,1))
 ```
 
-That the model seem to be quite a bad fit is clearly shown by the plot over the fitted values against the original values. Since the variance for the predicted values is low and the bias is high the model is concluded to be underfitted.  
+That the model seem to be quite a bad fit is clearly shown by the plot over the fitted values against the original values. Since the variance for the predicted values is low and the bias is high the model is concluded to be underfitted and quite some information seem to be lost when only returning three different values.  
 
-Since the residuals are rather equally distributed over the x-axis they could be thought of as following a uniform distribution. 
+Since the data set has rather few observations the distribution of the residuals is a bit hard to analyse. What that can be said is that is not evident that the residuals are normally distributed.  
 
 ### 1.3
-For the selected regression tree model are 95 % confidence bands computed by using a non-parametric bootstrap. The confidence bands are plotted together with both the original and fitted values.  
+For the selected regression tree model is 95 % confidence bands computed by using a non-parametric bootstrap. The confidence bands are plotted together with both the original and fitted values.  
 
 ```{r, echo=FALSE}
 # 1.3 
@@ -84,8 +84,9 @@ f=function(data, ind){
   data1=data[ind,]# extract bootstrap sample
   #fit regression tree
   res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2)) 
+  fit=prune.tree(res, best=3) 
   #predict values for all Area values from the original data
-  priceP=predict(res,newdata=data2)
+  priceP=predict(fit,newdata=data2)
   return(priceP)
 }
 res=boot(data2, f, R=1000) #make bootstrap
@@ -97,15 +98,16 @@ fit=prune.tree(fit2, best=3)
 priceP=predict(fit)
 
 plot(state$MET, state$EX, pch=21, bg="black", col="red")
-points(data2$MET,priceP,type="b", col="blue") #plot fitted line
+points(state$MET,priceP, col="blue", bg="blue", pch=21) #plot fitted line
 #plot cofidence bands
 points(data2$MET,e$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e$point[1,], type="l", col="red", lwd=2)
 
 ```
 
-The confidence bands are very bumpy, that is because...
-The conclusion is that some knowledge (but how much?) about the expected response is gained by the model. The interval in general lies fairly close to the observed valeus, this should be rather good? A lot of the observed values are at the edge of the confidence interval, but none is outside it. 
+The confidence bands are bumpy, that is because non-parametric bootstrapping do not operate under the assumption of belonging to any particluar distribution. This results in bands that takes much influence from the actual values and the effect of this are "bumpy" confidence bands.  
+In general the conclusion is that little knowledge about the expected response is gained by the model. 
+That is true especially for the lowest values on the y-axis. 
 
 ### 1.4
 When using a parametric bootstrap to compute the 95 % confidence and prediction bands for the regression tree model, the following bands can be plotted:
@@ -119,32 +121,52 @@ rng=function(data, mle) {
   data1=data.frame(EX=data$EX,
                    MET=data$MET, data=data)
   n=length(data$EX)
-  data1$EX=rnorm(n,predict(mle,newdata=data1),sd(mle$y))
+  data1$EX=rnorm(n,predict(mle,newdata=data1),sd(residuals(mle)))
   return(data1)
 }
+# Prediction bands
 f1=function(data1){
-  res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2)) 
-  predictedP=predict(res, newdata=data2)
+  res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2))
+  fit=prune.tree(res, best=3) 
+  n=length(data1$EX)
+  predictsP=predict(fit, newdata=data2)
+  predictedP=rnorm(n,predictsP,sd(residuals(mle)))
   return(predictedP)
 }
-res=boot(data2, statistic=f1, R=1000, mle=mle, ran.gen=rng , sim="parametric") 
-e2=envelope(res) 
+# Confidence bands
+f2=function(data1){
+  res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2))
+  fit=prune.tree(res, best=3) 
+  predictedP=predict(fit, newdata=data2)
+  return(predictedP)
+}
+
+
+res1=boot(data2, statistic=f1, R=1000, mle=mle, ran.gen=rng , sim="parametric") 
+res2=boot(data2, statistic=f2, R=1000, mle=mle, ran.gen=rng , sim="parametric") 
+
+e2=envelope(res1) 
+e3=envelope(res2)  
+
 fit=prune.tree(fit2, best=3) 
 pred2=predict(fit)
 plot(state$MET, state$EX, pch=21, bg="black", col="red", ylim=c(100, 550))
-points(data2$MET,pred2,type="b", col="blue") #plot fitted line
+points(state$MET,pred2, col="blue") #plot fitted line
 #plot cofidence bands
 points(data2$MET,e2$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e2$point[1,], type="l", col="red", lwd=2)
+points(data2$MET,e3$point[2,], type="l", col="blue", lwd=2)
+points(data2$MET,e3$point[1,], type="l", col="blue", lwd=2)
 ```
-What can ve said about the models appropriateness? 
-Almost all of the original values, 46 out of 48, lies inside the confidence bands. That's pretty okay? By the look it may be a reasonable model? Or are the prediction bands to wide(or small?)? It is hard to give an proper evaluation of the appropriateness of the model...The parametric bootstrap follows a normal distribution, that should not be reasonable?  
+For this data the fitted model seem to be an inappropriate choice. There is a lot of uncertainty in the data and this might be an explanation of the inappropriateness of the model. This problem is well illustrated by the prediction bands, since they capture both the expected interval for the observations and the potential effects of randomness.  
 
-Although with in mind that it is 95% predicition bands it can be concluded that more than 5% of the values lies outside the estimated bands. A conclusion that not speaks in favor of the appropriateness of the model. 
+Only one point are outside the prediction bands, that is approximately 5 % of data. 
 
 ### 1.5
-What kind of bootstrap is more appropriate?
-What is the goal with the confidence bands? Should they capture the pattern of data (if so, be a bit bumby in this case, or is that overfittness? or something else that is bad?) Or should they capture the range the values in most cases lies within? (similar to what the prediction bands gave)
+The estimated confidence bands with the non-parametric and the parametric bootstrap are quite similar. The former bands are more bumpy and the latter more stable. An advantage with the parametric bootstrap is that the confidence intervals are more stable and not too sensitive to extreme values as the confidence interval for the non-parametric bootstrap is.
+
+An suggestion may be that the parametric bootstrap is more apprpriate due to this advantage. Although a disadvantage may be the assumption of normality. As noted in 1.2 there might be uncertainty over making that assumption. 
+If one of the methods has to be chosen, the parametric bootstrap is thought to be more appropriate since it gives more general and stable intervals. 
 
 ## Assignment 2
 The data analysed in the second assignment consists of near-infrared spectra and viscosity levels for a collection of diesel fuels. The objective with the assignment is to examine how the measured spectra can be used in order to predict the viscosity. 
@@ -162,7 +184,6 @@ lambda=res$sdev^2
 #proportion of variation explained by each feature
 plot(sprintf("%2.3f",lambda/sum(lambda)*100), ylab="Variation explained (%)")
 ```
-(Is the plot above the right one?)  
 
 The amount of principal components needed to explain at least 99% of the total variation is concluded to be two. The scores for the respective feature for these principal components are investigated more closely by the next plot. 
 
@@ -172,9 +193,7 @@ The amount of principal components needed to explain at least 99% of the total v
 plot(res$x[,1], res$x[,2], xlab="PC1", ylab="PC2")
 ```
 
-A big cluster of points to the left in the graph. 
-A small bunch of points a little bit to the right of the big cluster. Some outlying points at the right end of the graph. The outlying values x-wise can be interpreted to be the features with high scores for PC1. The valeus with low or high values y-wise are features with high scores for PC2.  
-(Is this correct?)
+A cluster of points can be seen to the left in the graph and some outlying points at the right end of the graph. The outlying values x-wise can be interpreted to be the features with high scores for PC1. The valeus with low or high values y-wise are features with high scores for PC2.  
 
 ### 2.2
 The loadings of the components PC1 and PC2 are here visualised by so called trace plots. 
@@ -201,8 +220,8 @@ a <- fastICA(data_a, 2, alg.typ = "parallel", fun = "logcosh", alpha = 1,
 
 #### a)  
 
-The matrix W is presented by the table below. W is a weighting matrix that is used to minimize the mutual information between variables.This means that role the of the W matrix is to make the components in the model uncorrelated. An interpretation of the values in the matrix gives that...
-Has it to do with transformation(rotation) ? The first principal component is changed a lot, the second barely changed at all. This has got to do with the values in W, but how?
+The matrix W is presented by the table below. W is a weighting matrix that is used to minimize the mutual information between variables.This means that role the of the W matrix is to make the components in the model uncorrelated. An interpretation of the values in the matrix gives that the first component needs to be transformed quite much since the absolute value of first value in the matrix is high, almost equal to one. 
+The second component is connected to a low value, almost equal to zero, and that means a small transformation is needed for this component. 
 
 ```{r,echo=FALSE}
 W_mat <- a$W
@@ -212,8 +231,7 @@ W_mat
   
 #### b)  
 
-The next matrix presented is the W' matrix. The role of this matrix is to...
-Gives the rotated, uncorrelated, loadings for the components of the ICA model?
+The next matrix presented is the W' matrix. The role of this matrix is to give the rotated, uncorrelated, loadings for the components of the ICA model.
 The two columns of the W' matrix are here presented by trace plots.  
 
 ```{r, echo=FALSE}
@@ -222,7 +240,7 @@ KW_mat <- a$K %*% a$W
 plot(KW_mat[,1], main="Traceplot, column1")
 plot(KW_mat[,2],main="Traceplot, column2")
 ```
-When comparing with the trace plots in 2.2 it can be noted that a similar conclusion can be drawn for the respecitive component. For the frist component all factors have non-zero loadings. For the second component the majority of the factors have loadings close to zero and therfore only a few factors explains the component. 
+When comparing with the trace plots in 2.2 it can be noted that a similar conclusion can be drawn for the respecitive component. For the first component all factors have non-zero loadings. For the second component the majority of the factors have loadings close to zero and therefore only a few factors explains the component. 
   
 #### c)  
 A score plot for the components in the ICA model   

@@ -47,7 +47,7 @@ fit=prune.tree(fit2, best=3)
 priceP=predict(fit)
 
 plot(state$MET, state$EX, pch=21, bg="black", col="red")
-points(data2$MET,priceP,type="b", col="blue") #plot fitted line
+points(state$MET,priceP, col="blue", bg="blue", pch=21) #plot fitted line
 #plot cofidence bands
 points(data2$MET,e$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e$point[1,], type="l", col="red", lwd=2)
@@ -90,32 +90,18 @@ e3=envelope(res2)
 fit=prune.tree(fit2, best=3) 
 pred2=predict(fit)
 plot(state$MET, state$EX, pch=21, bg="black", col="red", ylim=c(100, 550))
-points(data2$MET,pred2,type="b", col="blue") #plot fitted line
+points(state$MET,pred2, col="blue") #plot fitted line
 #plot cofidence bands
 points(data2$MET,e2$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e2$point[1,], type="l", col="red", lwd=2)
 points(data2$MET,e3$point[2,], type="l", col="blue", lwd=2)
 points(data2$MET,e3$point[1,], type="l", col="blue", lwd=2)
-
-
-plot(state$MET, state$EX, pch=21, bg="black", col="red")
-points(state$MET,priceP, col="blue") #plot fitted line
-#plot cofidence bands
-points(data2$MET,e$point[2,], type="l", col="red", lwd=2)
-points(data2$MET,e$point[1,], type="l", col="red", lwd=2)
-points(data2$MET,e3$point[2,], type="l", col="blue", lwd=2)
-points(data2$MET,e3$point[1,], type="l", col="blue", lwd=2)
-points(data2$MET,e2$point[2,], type="l", col="lightblue", lwd=2)
-points(data2$MET,e2$point[1,], type="l", col="lightblue", lwd=2)
-
-
 spectra <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 4/NIRSpectra.csv", sep=";")
 data_a <- spectra
 data_a$Viscosity=c()
 data_a$ID=c()
 res=prcomp(data_a)
 lambda=res$sdev^2
-
 #proportion of variation explained by each feature
 plot(sprintf("%2.3f",lambda/sum(lambda)*100), ylab="Variation explained (%)")
 # Scores in coordinates of PC1 and PC2
@@ -163,4 +149,3 @@ plsr.fit1=plsr(Viscosity~., 12,data=train, validation="none")
 plsr.pred <- predict(plsr.fit1, newdata=test, ncomp = 12)
 plsr.mse <- 1/length(na.omit(test$Viscosity))* sum((test$Viscosity - plsr.pred)^2, na.rm=TRUE)
 ## 
-
