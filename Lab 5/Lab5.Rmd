@@ -29,6 +29,31 @@ ggplot(mrt_rate, aes(y=LMR, x=Day)) + geom_point()
 ## 1.3
 
 ## 1.4
+```{r, echo=FALSE}
+library(kernlab)
+set.seed(12345)
+epsi <- seq(0.1, 3.5, 0.2)
+j <- 1
+MSE_SVM <- 0
+for(i in epsi){
+  LMR_SVM <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
+                  kernel="rbfdot", epsilon=i)
+  MSE_SVM[j] <- sum(((LMR_SVM@fitted - mrt_rate$LMR)^2)/ 136)
+  j <- j+1
+}
+
+plot(epsi, MSE_SVM, type="b", pch=21, bg="orange")
+# Compares original and fitted values, epsilion =2.3
+LMR_SVM <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
+                kernel="rbfdot", epsilon=2.3)
+
+fittedV <- data.frame(LMR=LMR_SVM@fitted)
+originalV <- data.frame(LMR=mrt_rate$LMR)
+ValuSVM <- cbind(rbind(originalV, fittedV),Type=c(rep("OrigV", 136), rep("FittedV", 136)), Day=mrt_rate$Day)
+ggplot(ValuSVM, aes(y=LMR, x=Day)) + geom_point(aes(col=Type))
+
+```
+
 
 ## 1.5
 

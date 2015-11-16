@@ -1,7 +1,7 @@
 ---
-title: "Introduction to Machine Learning - Lab 4"
-author: "Gustav Sternelöv"
-date: "Tuesday, November 17, 2015"
+title: "Introduction to Machine Learning - Lab 5"
+author: "Caroline Svahn, Niclas Lovsjö and Gustav Sternelöv"
+date: "Monday, November 16, 2015"
 output:
   pdf_document:
     fig_height: 4
@@ -21,10 +21,10 @@ library(ggplot2)
 ggplot(state, aes(x=MET, y=EX)) + geom_point()
 ```
 
-An analyze of the graph gives that for low values and for high values of MET the value of EX is high. An interpretation of this is that models who creates linear decision boundaries probably will result in bad fits. Another type of model, one that can capture a nonlinear pattern is therefore thought to be needed in this case.  
+An analyze of the graph gives that for low values and for high values of MET the value of EX is high. An interpretation of this is that models who creates a linear decision boundary probably will result in bad fits. Another type of model, one that can capture a nonlinear pattern is therefore thought to be needed in this case.  
 
 ### 1.2
-A regression tree model is fitted to the data descirbed in 1.1. The number of leaves are selected by cross-validation and the CV-score for different number of leaves is visualised by the following graph.
+We fit a regression tree, i.e.\ a decision tree with continuous target variable, using cross-validation to select the number of trees for the entire dataset. We also want to restrict the minimum number of observations for one leaf to 2.  
 
 ```{r, echo=FALSE, warning=FALSE}
 library(tree)
@@ -42,7 +42,7 @@ plot(pruneFit2)
 text(pruneFit2, pretty=0)
 ```
 
-As can be seen by the visualisation of the tree above, low values of MET results in a high response value. The second split is for high values where a rather high response value is given for high values of MET. For values in between, higher than 7.7 and lower than 60.5, a lower response value is given.  
+As seen in the figure above, the tree only reports three values for expenditures: 346.4, 260.9 and 305.8. The highest value of expenditures is obtained when the percentage of the population living in standard metropolian areas is less than 7.7 %. If the percentage is higher than 7.7 %, the value is evaluated once more. If MET is below 60.5 %, the minimum value of 260.9 is obtained, and if it is higher than 60.5 % the model returns 305.8
 The original data is then plotted against the fitted values and the residuals are plotted in a histogram.
 
 ```{r, echo=FALSE, include=FALSE}
@@ -66,9 +66,9 @@ lines(mydensity)
 par(mfrow=c(1,1))
 ```
 
-That the model seem to be quite a bad fit is clearly shown by the plot over the fitted values against the original values. Since the variance for the predicted values is low and the bias is high the model is concluded to be underfitted.  
+That the model seem to be quite a bad fit is clearly shown by the plot over the fitted values against the original values. Since the variance for the predicted values is low and the bias is high the model is concluded to be underfitted and quite some information seem to be lost when only returning three different values.  
 
-Since the residuals are rather equally distributed over the x-axis they could be thought of as following a uniform distribution. 
+The residuals are not apparent normally distributed, which is expected since the fitted values only take three different values, leaving rather large residuals. Although the data set consists of a rather few amount of observations.  
 
 ### 1.3
 For the selected regression tree model are 95 % confidence bands computed by using a non-parametric bootstrap. The confidence bands are plotted together with both the original and fitted values.  
@@ -84,8 +84,9 @@ f=function(data, ind){
   data1=data[ind,]# extract bootstrap sample
   #fit regression tree
   res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2)) 
+  fit=prune.tree(res, best=3) 
   #predict values for all Area values from the original data
-  priceP=predict(res,newdata=data2)
+  priceP=predict(fit,newdata=data2)
   return(priceP)
 }
 res=boot(data2, f, R=1000) #make bootstrap
@@ -97,15 +98,17 @@ fit=prune.tree(fit2, best=3)
 priceP=predict(fit)
 
 plot(state$MET, state$EX, pch=21, bg="black", col="red")
-points(data2$MET,priceP,type="b", col="blue") #plot fitted line
+points(state$MET,priceP, col="blue", bg="blue", pch=21) #plot fitted line
 #plot cofidence bands
 points(data2$MET,e$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e$point[1,], type="l", col="red", lwd=2)
 
 ```
 
-The confidence bands are very bumpy, that is because...
-The conclusion is that some knowledge (but how much?) about the expected response is gained by the model. The interval in general lies fairly close to the observed valeus, this should be rather good? A lot of the observed values are at the edge of the confidence interval, but none is outside it. 
+The confidence bands are bumpy, that is because non-parametric bootstrapping do not operate under the assumption of belonging to any particluar distribution. An effect of this is that the bands are applied with more consideration to the actual values - thus, the bands appear "`bumpy". 
+
+In general the conclusion is that little knowledge about the expected response is gained by the model. 
+That is true especially for the lowest values on the y-axis. 
 
 ### 1.4
 When using a parametric bootstrap to compute the 95 % confidence and prediction bands for the regression tree model, the following bands can be plotted:
@@ -119,38 +122,63 @@ rng=function(data, mle) {
   data1=data.frame(EX=data$EX,
                    MET=data$MET, data=data)
   n=length(data$EX)
-  data1$EX=rnorm(n,predict(mle,newdata=data1),sd(mle$y))
+  data1$EX=rnorm(n,predict(mle,newdata=data1),sd(residuals(mle)))
   return(data1)
 }
+# Prediction bands
 f1=function(data1){
-  res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2)) 
-  predictedP=predict(res, newdata=data2)
+  res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2))
+  fit=prune.tree(res, best=3) 
+  n=length(data1$EX)
+  predictsP=predict(fit, newdata=data2)
+  predictedP=rnorm(n,predictsP,sd(residuals(mle)))
   return(predictedP)
 }
-res=boot(data2, statistic=f1, R=1000, mle=mle, ran.gen=rng , sim="parametric") 
-e2=envelope(res) 
+# Confidence bands
+f2=function(data1){
+  res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2))
+  fit=prune.tree(res, best=3) 
+  predictedP=predict(fit, newdata=data2)
+  return(predictedP)
+}
+
+
+res1=boot(data2, statistic=f1, R=1000, mle=mle, ran.gen=rng , sim="parametric") 
+res2=boot(data2, statistic=f2, R=1000, mle=mle, ran.gen=rng , sim="parametric") 
+
+e2=envelope(res1) 
+e3=envelope(res2)  
+
 fit=prune.tree(fit2, best=3) 
 pred2=predict(fit)
 plot(state$MET, state$EX, pch=21, bg="black", col="red", ylim=c(100, 550))
-points(data2$MET,pred2,type="b", col="blue") #plot fitted line
+points(state$MET,pred2, col="blue") #plot fitted line
 #plot cofidence bands
 points(data2$MET,e2$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e2$point[1,], type="l", col="red", lwd=2)
+points(data2$MET,e3$point[2,], type="l", col="blue", lwd=2)
+points(data2$MET,e3$point[1,], type="l", col="blue", lwd=2)
+#legend(x=20,y=515,legend=c("pred.band","conf.band"),col=c("red","blue"),lty=c(1,1),lwd=c(2,2))
 ```
-What can ve said about the models appropriateness? 
-Almost all of the original values, 46 out of 48, lies inside the confidence bands. That's pretty okay? By the look it may be a reasonable model? Or are the prediction bands to wide(or small?)? It is hard to give an proper evaluation of the appropriateness of the model...The parametric bootstrap follows a normal distribution, that should not be reasonable?  
 
-Although with in mind that it is 95% predicition bands it can be concluded that more than 5% of the values lies outside the estimated bands. A conclusion that not speaks in favor of the appropriateness of the model. 
+The fitted model does not seem to be appropriate for this data. This can partly be explained by the fact that there is a lot of uncertainty in the data observed. This is well illustrated by the prediction bands, since they capture both the expected interval for the observations and the potential effects of randomness. 
+Only one point are outside the prediction bands, that is approximately 5 % of data. 
 
 ### 1.5
-What kind of bootstrap is more appropriate?
-What is the goal with the confidence bands? Should they capture the pattern of data (if so, be a bit bumby in this case, or is that overfittness? or something else that is bad?) Or should they capture the range the values in most cases lies within? (similar to what the prediction bands gave)
+The confidence bands are quite similar. The main difference is the bumpiness of the non-paramateric bands and the more unflexible parametric bands. 
+
+The advantage with the parametric bootstrap is thtat it gives confidence intervals that are more general and not too sensitive to extreme values as the confidence interval for the non-parametric bootstrap is.
+
+This advantage gives that the parametric bootstrap may be more appropriate. Although a disadvantage may be that the assumption of normality. As noted in 1.2 there might be uncertainty over making that assumption. 
+
+If one of the methods must be suggested, the non-parametric bootstrap is thought to be more appropriate due to the problems with finding an appropriate distribution for the parametric method.
+
 
 ## Assignment 2
 The data analysed in the second assignment consists of near-infrared spectra and viscosity levels for a collection of diesel fuels. The objective with the assignment is to examine how the measured spectra can be used in order to predict the viscosity. 
 
 ### 2.1 
-A standard PCA with all features included is performed to determine how many principal components that are needed to explain at least 99% of the total variance. How much of the variation that is explained by each feature is presented with the following graph. 
+A standard PCA with all features included is performed to determine how many principal components that are needed to explain at least 99% of the total variance. How much of the variation that is explained by each principal component is presented with the following graph. 
 
 ```{r,echo=FALSE}
 spectra <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 4/NIRSpectra.csv", sep=";")
@@ -160,21 +188,27 @@ data_a$ID=c()
 res=prcomp(data_a)
 lambda=res$sdev^2
 #proportion of variation explained by each feature
-plot(sprintf("%2.3f",lambda/sum(lambda)*100), ylab="Variation explained (%)")
+par(mfrow=c(1,2))
+screeplot(res, xlab="Components", main="Variance per eigenvalue", 
+  col="seagreen")
+plot(sprintf("%2.3f",lambda/sum(lambda)*100), ylab="Variation explained (%)",
+     pch=21, bg="seagreen", col="seagreen")
+par(mfrow=c(1,1))
 ```
-(Is the plot above the right one?)  
-
-The amount of principal components needed to explain at least 99% of the total variation is concluded to be two. The scores for the respective feature for these principal components are investigated more closely by the next plot. 
-
+ From the plot, it is evident that the first component explains by far the most variance, percentwise. The second explains some amount while the rest do not appear to explain any significant variance. Since the plot does not show the percentage of explained variance, it is not sufficient to conclude how many components are needed to obtain 99 % of the variance explained. 
+Further investigation of the components reveals that the first component explains 92.9 % of the variance and the second 6.7 %. Together, the first two components explain 99.6 %, which is then sufficient for reaching 99 % and therefore the first two components will be used. Furthermore, the scores for the two first components:
 
 ```{r, echo=FALSE}
 # Scores in coordinates of PC1 and PC2
 plot(res$x[,1], res$x[,2], xlab="PC1", ylab="PC2")
 ```
 
-A big cluster of points to the left in the graph. 
-A small bunch of points a little bit to the right of the big cluster. Some outlying points at the right end of the graph. The outlying values x-wise can be interpreted to be the features with high scores for PC1. The valeus with low or high values y-wise are features with high scores for PC2.  
-(Is this correct?)
+
+Mainly, the scores of the first component are higher, all above 0, and shows some quite large values. The scores for PC2 is lower, which shows that the second component explains less than the first component.
+
+The majority of the scores lies to left in the graph and some outlying points can be noted at the right end of the graph. 
+
+The outlying values x-wise can be interpreted to be the features with high scores for PC1. The valeus with low or high values y-wise are features with high scores for PC2. 
 
 ### 2.2
 The loadings of the components PC1 and PC2 are here visualised by so called trace plots. 
@@ -186,7 +220,8 @@ plot(U[,2],main="Traceplot, PC2")
 
 ```
 
-For the first principal component, PC1, it can be seen that all of the factors seem to have significant effect on the component. For the second principal component, PC2, the majority of the factors are very close to zero. This implies that PC2 mainly is explained by those few factors whose loadings not are zero or close to zero.
+We see that the first PC is explained by all factors, but that the first factors have higher degree of explanation. 
+Applying the facts for interpreting the first component also on the second trace plot, more values are closer to 0 than for the first component. The first about a hundred factors keep close to zero, then the plot shows a steep downward trend. Thus, the first features do not impact that much, only the last few.
 
 ### 2.3
 The next model that is conducted is a Independent Component Analysis, ICA, with two components. 
@@ -202,7 +237,10 @@ a <- fastICA(data_a, 2, alg.typ = "parallel", fun = "logcosh", alpha = 1,
 #### a)  
 
 The matrix W is presented by the table below. W is a weighting matrix that is used to minimize the mutual information between variables.This means that role the of the W matrix is to make the components in the model uncorrelated. An interpretation of the values in the matrix gives that...
-Has it to do with transformation(rotation) ? The first principal component is changed a lot, the second barely changed at all. This has got to do with the values in W, but how?
+the first component needs to be transformed quite much since the absolute value of first value in the matrix is high, almost equal to one. 
+The second component is connected to a low value, almost equal to zerom and that means a small transformation is needed for this component. 
+
+
 
 ```{r,echo=FALSE}
 W_mat <- a$W

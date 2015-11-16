@@ -11,7 +11,7 @@ plot(pruneFit2)
 text(pruneFit2, pretty=0)
 cv_pred <- predict(pruneFit2)
 fit2_resid <- state$EX - cv_pred
-myhist <- hist(fit2_resid, breaks=14) 
+myhist <- hist(fit2_resid) 
 par(mfrow=c(1,2))
 plot(state$MET, state$EX, col="blue")
 points(state$MET, cv_pred, col="red")
@@ -33,8 +33,9 @@ f=function(data, ind){
   data1=data[ind,]# extract bootstrap sample
   #fit regression tree
   res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2)) 
+  fit=prune.tree(res, best=3) 
   #predict values for all Area values from the original data
-  priceP=predict(res,newdata=data2)
+  priceP=predict(fit,newdata=data2)
   return(priceP)
 }
 res=boot(data2, f, R=1000) #make bootstrap
@@ -59,16 +60,33 @@ rng=function(data, mle) {
   data1=data.frame(EX=data$EX,
                    MET=data$MET, data=data)
   n=length(data$EX)
-  data1$EX=rnorm(n,predict(mle,newdata=data1),sd(mle$y))
+  data1$EX=rnorm(n,predict(mle,newdata=data1),sd(residuals(mle)))
   return(data1)
 }
+# Prediction bands
 f1=function(data1){
-  res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2)) 
-  predictedP=predict(res, newdata=data2)
+  res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2))
+  fit=prune.tree(res, best=3) 
+  n=length(data1$EX)
+  predictsP=predict(fit, newdata=data2)
+  predictedP=rnorm(n,predictsP,sd(residuals(mle)))
   return(predictedP)
 }
-res=boot(data2, statistic=f1, R=1000, mle=mle, ran.gen=rng , sim="parametric") 
-e2=envelope(res) 
+# Confidence bands
+f2=function(data1){
+  res=tree(EX ~ MET, data=data1, control=tree.control(nobs=48, minsize=2))
+  fit=prune.tree(res, best=3) 
+  predictedP=predict(fit, newdata=data2)
+  return(predictedP)
+}
+
+
+res1=boot(data2, statistic=f1, R=1000, mle=mle, ran.gen=rng , sim="parametric") 
+res2=boot(data2, statistic=f2, R=1000, mle=mle, ran.gen=rng , sim="parametric") 
+
+e2=envelope(res1) 
+e3=envelope(res2)  
+
 fit=prune.tree(fit2, best=3) 
 pred2=predict(fit)
 plot(state$MET, state$EX, pch=21, bg="black", col="red", ylim=c(100, 550))
@@ -76,12 +94,28 @@ points(data2$MET,pred2,type="b", col="blue") #plot fitted line
 #plot cofidence bands
 points(data2$MET,e2$point[2,], type="l", col="red", lwd=2)
 points(data2$MET,e2$point[1,], type="l", col="red", lwd=2)
+points(data2$MET,e3$point[2,], type="l", col="blue", lwd=2)
+points(data2$MET,e3$point[1,], type="l", col="blue", lwd=2)
+
+
+plot(state$MET, state$EX, pch=21, bg="black", col="red")
+points(state$MET,priceP, col="blue") #plot fitted line
+#plot cofidence bands
+points(data2$MET,e$point[2,], type="l", col="red", lwd=2)
+points(data2$MET,e$point[1,], type="l", col="red", lwd=2)
+points(data2$MET,e3$point[2,], type="l", col="blue", lwd=2)
+points(data2$MET,e3$point[1,], type="l", col="blue", lwd=2)
+points(data2$MET,e2$point[2,], type="l", col="lightblue", lwd=2)
+points(data2$MET,e2$point[1,], type="l", col="lightblue", lwd=2)
+
+
 spectra <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 4/NIRSpectra.csv", sep=";")
 data_a <- spectra
 data_a$Viscosity=c()
 data_a$ID=c()
 res=prcomp(data_a)
 lambda=res$sdev^2
+
 #proportion of variation explained by each feature
 plot(sprintf("%2.3f",lambda/sum(lambda)*100), ylab="Variation explained (%)")
 # Scores in coordinates of PC1 and PC2
@@ -120,12 +154,13 @@ validationplot(pcr.fit,val.type="MSEP")
 
 pcr.fit1=pcr(Viscosity~., 25,data=train, validation="none")
 pcr.pred <- predict(pcr.fit1, newdata=test, ncomp = 25)
-pcr.mse <- 1/length(test[,1]) * sum((test$Viscosity - pcr.pred)^2, na.rm=TRUE)
+pcr.mse <- 1/length(na.omit(test$Viscosity)) * sum((test$Viscosity - pcr.pred)^2, na.rm=TRUE)
 pcr.mse
 set.seed(12345)
 plsr.fit=plsr(Viscosity~., data=train, validation="CV")
 validationplot(plsr.fit,val.type="MSEP")
 plsr.fit1=plsr(Viscosity~., 12,data=train, validation="none")
 plsr.pred <- predict(plsr.fit1, newdata=test, ncomp = 12)
-plsr.mse <- 1/length(test[,1]) * sum((test$Viscosity - plsr.pred)^2, na.rm=TRUE)
+plsr.mse <- 1/length(na.omit(test$Viscosity))* sum((test$Viscosity - plsr.pred)^2, na.rm=TRUE)
 ## 
+

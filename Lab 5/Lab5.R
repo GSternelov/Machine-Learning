@@ -11,6 +11,22 @@ ggplot(mrt_rate, aes(y=LMR, x=Day)) + geom_point()
 # 1.2
 
 NadWat <- function(X, Y, Xtest, lambda){
+
+  # Wants to go through all x for every Xtest
+  # Compute the value for every run and sum the 136 values
+  # Do this for every value in xtest
+  
+  for (i in 1:length(Xtest)){ 
+    for (j in 1:length(X)){
+     if(abs(X[j]-X[i]) < lambda ){
+       K[j] <- 
+     }else{
+       K[j] <- 0
+     } 
+    }
+    
+    
+  }
   
 }
 
@@ -47,8 +63,17 @@ ggplot(ValuSVM, aes(y=LMR, x=Day)) + geom_point(aes(col=Type))
 # 1.5
 library(fANCOVA)
 
-loess.as
+loessLMR <- loess.as(mrt_rate$Day, mrt_rate$LMR, 1, family = "gaussian", plot=TRUE)
+summary(loessLMR)
 
+predLoess <- predict(loessLMR, se=TRUE)
+upper <- predLoess$fit + predLoess$se.fit * 2
+lower <- predLoess$fit - predLoess$se.fit * 2
+predLoess$residual.scale
+
+plot(loessLMR, type="l")
+points(loessLMR$x, upper, type="l", col="orange")
+points(loessLMR$x, lower, type="l" ,col="orange")
 
 
 {# Assignment 2
