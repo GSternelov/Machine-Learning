@@ -1,0 +1,127 @@
+---
+title: "Introduction to Machine Learning - Lab 5"
+author: "Gustav Sternelöv"
+date: "Sunday, November 15, 2015"
+output:
+  pdf_document:
+    fig_height: 4
+    fig_width: 7
+---
+
+# Assignment 1
+The studied data set contains information about the mortality rate for fruit flies for each day. The data comes from a study where the theory that the mortality rates (probability of dying per unit time) of many organisms increase at an exponential rate was tested.
+```{r, echo=FALSE}
+mrt_rate <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 5/mortality_rate.csv", sep=";")
+
+```
+
+## 1.1
+The variable LMR, that is the logarithm of the variable Rate, is created and plotted against the variable Day.  
+
+```{r, echo=FALSE, warning=FALSE}
+library(ggplot2)
+mrt_rate$LMR <- log(mrt_rate$Rate)
+ggplot(mrt_rate, aes(y=LMR, x=Day)) + geom_point()
+```
+
+## 1.2
+
+## 1.3
+
+## 1.4
+
+## 1.5
+
+# Assignment 2
+The data set analysed in this assignment consists of information about 572 italian olive oils coming from different regions of the country. How much of different acids each olive oil contains and from which region and area the olive oil comes from is the information given. 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+olive <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 5/olive.csv", sep=",")
+library(kernlab)
+```
+
+## 2.1
+Two of the acids in the data set are *Oleic* and *Linoleic*. In the following graph these acids are plotted against each other and coloured after region where oils from region two are light blue and the others are dark blue.
+
+```{r, echo=FALSE}
+olive$R2 <- 0
+for (i in 1:572){
+  if(olive$Region[i] == 2){
+    olive$R2[i] = 1
+  }else{
+    olive$R2[i] = 0
+  }
+}
+ggplot(olive, aes(x=linoleic, y=oleic)) + geom_point(aes(col=R2))
+
+```
+The oils from region two are quite easy to identify since they lies rather separately from oils from the other regions. At least that is true for the majority of the observations from region two. Some of the dark blue points lies very close to the outer edges of the group of light blue points.  For these observations it may be hard for a model to correctly classify an olive oil as coming from region two or from one of the other regions. 
+
+## 2.2
+```{r, echo=FALSE}
+set.seed(12345)
+```
+
+### a)
+
+```{r, echo=FALSE, include=FALSE}
+linearSVM <- ksvm(R2 ~ oleic+linoleic, olive, type="C-svc", kernel="vanilladot")
+```
+
+```{r, echo=FALSE}
+plot(linearSVM, data=olive)
+```
+
+The misclassification rate: `r linearSVM@error`  
+The amount of support vectors: `r linearSVM@nSV`
+
+### b)
+
+```{r, echo=FALSE}
+rbfSVM <- ksvm(R2 ~ oleic+linoleic, olive, type="C-svc", 
+               kernel="rbfdot")
+plot(rbfSVM, data=olive)
+```
+The misclassification rate: `r rbfSVM@error`  
+The amount of support vectors: `r rbfSVM@nSV`
+
+### c)
+
+```{r, echo=FALSE}
+rbf_penSVM <- ksvm(R2 ~ oleic+linoleic, olive, type="C-svc", 
+               kernel="rbfdot", C=100)
+plot(rbf_penSVM, data=olive)
+```
+The misclassification rate: `r rbf_penSVM@error`  
+The amount of support vectors: `r rbf_penSVM@nSV`
+
+### d)
+
+```{r, echo=FALSE}
+rbf_bwitdhSVM <- ksvm(R2 ~ oleic+linoleic, olive, type="C-svc", 
+                   kernel="rbfdot", kpar=list(sigma=10))
+plot(rbf_bwitdhSVM, data=olive)
+```
+
+The misclassification rate: `r rbf_bwitdhSVM@error`  
+The amount of support vectors: `r rbf_bwitdhSVM@nSV`
+
+### Comparison of models
+In terms of misclassification rate model *c*, the model with RBF kernel and penalty for C equal to 100, seem to be the best. It has the lowest misclassification rate, even though it also should be mentioned that the difference between the misclassification rates for the models is very small.  
+
+How does the parameters chosen in *c* and *d* influence the classification? The value of C defines the cost of constraints violation.   
+
+The amount of support vectors in the models differs significantly. In model *a* and in model *d* 119 of the 572 observated values are used as support vectors. Less than a half of this amount of support vectors are used in model *b*, 52, and in model *c* 15 values are used as support vectors.  
+
+
+## 2.3
+
+```{r, echo=FALSE, include=FALSE}
+olive_acid <- olive[, c(2, 4:11)]
+rbf_spocSVM <- ksvm(Region ~. , olive, type="spoc-svc", 
+                      kernel="vanilladot", cross=10)
+```
+
+The misclassification rate: `r rbf_spocSVM@error`  
+The amount of support vectors: `r rbf_spocSVM@nSV`
+
+How do I find the cross-validation score?
