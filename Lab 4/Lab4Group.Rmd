@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Machine Learning - Lab 5"
 author: "Caroline Svahn, Niclas Lovsjö and Gustav Sternelöv"
-date: "Monday, November 16, 2015"
+date: "Tuesday, November 17, 2015"
 output:
   pdf_document:
     fig_height: 4
@@ -9,7 +9,7 @@ output:
 ---
 
 ## Assignment 1
-```{r,echo=FALSE}
+```{r,echo=FALSE} 
 state <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 4/State.csv", sep=";")
 ```
 
@@ -17,6 +17,7 @@ state <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 4/State.csv", 
 The variables analyzed in the first assignment are MET (Percentage of population living in standard metropolitan areas) and EX (Per capita state and local public expenditures ($)). The latter is the target variable and the former the input variable. A plot of MET versus EX can be seen below. 
 
 ```{r, echo=FALSE, warning=FALSE}
+# 1.1
 library(ggplot2)
 ggplot(state, aes(x=MET, y=EX)) + geom_point()
 ```
@@ -27,6 +28,7 @@ An analyze of the graph gives that for low values and for high values of MET the
 We fit a regression tree, i.e.\ a decision tree with continuous target variable, using cross-validation to select the number of trees for the entire dataset. We also want to restrict the minimum number of observations for one leaf to 2.  
 
 ```{r, echo=FALSE, warning=FALSE}
+# 1.2
 library(tree)
 set.seed(12345)
 fit2 <- tree(EX ~ MET, data=state, control=tree.control(nobs=48, minsize=2))
@@ -114,6 +116,7 @@ That is true especially for the lowest values on the y-axis.
 When using a parametric bootstrap to compute the 95 % confidence and prediction bands for the regression tree model, the following bands can be plotted:
 
 ```{r, echo=FALSE, warning=FALSE}
+# 1.4
 # Parametric bootstrap
 # 95 % confidence and prediction bands
 # Assumes that Y follows the normal distribution
@@ -152,12 +155,12 @@ e3=envelope(res2)
 fit=prune.tree(fit2, best=3) 
 pred2=predict(fit)
 plot(state$MET, state$EX, pch=21, bg="black", col="red", ylim=c(100, 550))
-points(state$MET,pred2, col="blue") #plot fitted line
+points(state$MET,pred2,col="blue", bg="blue", pch=21) #plot fitted line
 #plot cofidence bands
-points(data2$MET,e2$point[2,], type="l", col="red", lwd=2)
-points(data2$MET,e2$point[1,], type="l", col="red", lwd=2)
-points(data2$MET,e3$point[2,], type="l", col="blue", lwd=2)
-points(data2$MET,e3$point[1,], type="l", col="blue", lwd=2)
+points(data2$MET,e2$point[2,], type="l", col="blue", lwd=2)
+points(data2$MET,e2$point[1,], type="l", col="blue", lwd=2)
+points(data2$MET,e3$point[2,], type="l", col="red", lwd=2)
+points(data2$MET,e3$point[1,], type="l", col="red", lwd=2)
 #legend(x=20,y=515,legend=c("pred.band","conf.band"),col=c("red","blue"),lty=c(1,1),lwd=c(2,2))
 ```
 
@@ -167,9 +170,7 @@ Only one point are outside the prediction bands, that is approximately 5 % of da
 ### 1.5
 The confidence bands are quite similar. The main difference is the bumpiness of the non-paramateric bands and the more unflexible parametric bands. 
 
-The advantage with the parametric bootstrap is thtat it gives confidence intervals that are more general and not too sensitive to extreme values as the confidence interval for the non-parametric bootstrap is.
-
-This advantage gives that the parametric bootstrap may be more appropriate. Although a disadvantage may be the assumption of normality. As noted in 1.2 there might be uncertainty over making that assumption. 
+The advantage with the parametric bootstrap is thtat it gives confidence intervals that are more general and not too sensitive to extreme values as the confidence interval for the non-parametric bootstrap is. This advantage gives that the parametric bootstrap may be more appropriate. Although a disadvantage may be the assumption of normality. As noted in 1.2 there might be uncertainty over making that assumption. 
 
 If one of the methods must be suggested, the non-parametric bootstrap is thought to be more appropriate due to the problems with finding an appropriate distribution for the parametric method.
 
@@ -181,6 +182,9 @@ The data analysed in the second assignment consists of near-infrared spectra and
 A standard PCA with all features included is performed to determine how many principal components that are needed to explain at least 99% of the total variance. How much of the variation that is explained by each principal component is presented with the following graph. 
 
 ```{r,echo=FALSE}
+# Assignment 2
+
+# 2.1 
 spectra <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 4/NIRSpectra.csv", sep=";")
 data_a <- spectra
 data_a$Viscosity=c()
@@ -214,6 +218,7 @@ The outlying values x-wise can be interpreted to be the features with high score
 The loadings of the components PC1 and PC2 are here visualised by so called trace plots. 
 
 ```{r, echo=FALSE}
+# 2.2
 U=res$rotation
 plot(U[,1], main="Traceplot, PC1")
 plot(U[,2],main="Traceplot, PC2")
@@ -226,6 +231,7 @@ Applying the facts for interpreting the first component also on the second trace
 ### 2.3
 The next model that is conducted is a Independent Component Analysis, ICA, with two components. 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# 2.3
 library(fastICA)
 
 set.seed(12345)
@@ -236,22 +242,20 @@ a <- fastICA(data_a, 2, alg.typ = "parallel", fun = "logcosh", alpha = 1,
 
 #### a)  
 
-The matrix W is presented by the table below. W is a weighting matrix that is used to minimize the mutual information between variables.This means that role the of the W matrix is to make the components in the model uncorrelated. An interpretation of the values in the matrix gives that...
-the first component needs to be transformed quite much since the absolute value of first value in the matrix is high, almost equal to one. 
-The second component is connected to a low value, almost equal to zerom and that means a small transformation is needed for this component. 
+The matrix W is presented by the table below. W is a weighting matrix that is used to minimize the mutual information between variables.This means that role the of the W matrix is 
+to find the orthogonal transformation that makes the components in the model as independent as possible. 
 
+
+An interpretation of the values in the matrix gives that the first component will be inverted and the other will in practice not be changed. This is due to that the value [1,1] is negative and [2,2] is positive. The other values does not have any particular influence since they are so small. 
 
 
 ```{r,echo=FALSE}
 W_mat <- a$W
 W_mat
 ```
-  
-  
+   
 #### b)  
-
-The next matrix presented is the W' matrix. The role of this matrix is to...
-Gives the rotated, uncorrelated, loadings for the components of the ICA model?
+The next matrix presented is the W' matrix. This is the matrix given when the W matrix is multiplied with the matrix $K$, which is a pre-whitening matrix that projects data onto the principal component. The role of this matrix is to give the independent loadings for the components of the ICA model.
 The two columns of the W' matrix are here presented by trace plots.  
 
 ```{r, echo=FALSE}
@@ -260,7 +264,7 @@ KW_mat <- a$K %*% a$W
 plot(KW_mat[,1], main="Traceplot, column1")
 plot(KW_mat[,2],main="Traceplot, column2")
 ```
-When comparing with the trace plots in 2.2 it can be noted that a similar conclusion can be drawn for the respecitive component. For the frist component all factors have non-zero loadings. For the second component the majority of the factors have loadings close to zero and therfore only a few factors explains the component. 
+When comparing with the trace plots in 2.2 it can be noted that a similar conclusion can be drawn for the respecitive component. For the first component all factors have non-zero loadings. For the second component the majority of the factors have loadings close to zero and therefore only a few factors explains the component. 
   
 #### c)  
 A score plot for the components in the ICA model   
@@ -274,9 +278,10 @@ A comparsion with the score plot in 2.1 gives that the scores for the components
 
 ### 2.4 - 2.5
 Before fitting a PCR and PLS model the data is divided into a training and a test set. The respective data set contains 50% each of the original data set.  
-A PCR model is fitted where the number of components in the model is selected by cross-validation. A low mean-square prediction error is wanted and the number of components that corresponds to the lowest error is chosen. To examine this further the dependence between the mean-square prediction error and the number of components is plotted.  
+We fit a Principal component regression(PCR) using the test set. PCR is a technique using the PC's as regressors in regular regression. When we have alot of features, some of these have a tendency to be collinear. PCR can handle this using the PCA to find the features with very low-variance, and exclude those, then perfrom regression. It can also be used to reduce the dimensionality. The following shows the dependence of the number of components for the MSE.  
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# 2.4 - 2.5
 dat <- as.matrix(spectra)
 n=dim(dat)[1]
 set.seed(12345)
@@ -288,39 +293,36 @@ library(pls)
 train <- data.frame(train[, 2:128])
 test <- data.frame(test[, 2:128])
 set.seed(12345)
-pcr.fit=pcr(Viscosity~., data=train, validation="CV")
-validationplot(pcr.fit,val.type="MSEP")
+pcr<-pcr(Viscosity~., data=train, validation = "CV")
+validationplot(pcr,val.type="MSEP")
+
+
+pcrPred<-MSEP(pcr, newdata=test, ncomp=6)
+pcrPred$val[2]
 
 ```
 
-The value for the mean-square prediction error term is approximately the same for a quite longe range of components. For the number of components from about 25 up to around 60 it is a very slight difference between the mean-square prediction errors. Since there is no reason to include more components if they don't improve the results, a reasonable choice could be to select 25 components.  
+The plot dispay some major drops in MSEP. The best gain is at 3 and 6 components. A small model is prefereable, however, since the loss in MSEP is rather great when using 6 components, this will be the number of components. For 6 components, $MSEP=0.09974108$.
   
-  The test set is used to evaluate the selected, optimal, model with 25 components. This is done by calculating the mean-square error for the model when applied on the test set. 
-
-```{r, echo=FALSE}
-pcr.fit1=pcr(Viscosity~., 25,data=train, validation="none")
-pcr.pred <- predict(pcr.fit1, newdata=test, ncomp = 25)
-pcr.mse <- 1/length(na.omit(test$Viscosity)) * sum((test$Viscosity - pcr.pred)^2, na.rm=TRUE)
-pcr.mse
-```
-
 
 ### 2.6
 The workflow for 2.5 is repeated in 2.6, with the difference that a PLS model is fitted instead of a PCR. 
 ```{r, echo=FALSE}
+# 2.6
 set.seed(12345)
-plsr.fit=plsr(Viscosity~., data=train, validation="CV")
-validationplot(plsr.fit,val.type="MSEP")
-plsr.fit1=plsr(Viscosity~., 12,data=train, validation="none")
-plsr.pred <- predict(plsr.fit1, newdata=test, ncomp = 12)
-plsr.mse <- 1/length(na.omit(test$Viscosity))* sum((test$Viscosity - plsr.pred)^2, na.rm=TRUE)
+plsr<-plsr(Viscosity~., data=train, validation = "CV")
+validationplot(plsr,val.type="MSEP")
+
+
+plsrPred<-MSEP(plsr, newdata=test, ncomp=3)
+plsrPred$val[2]
 ```
-The lowest mean-square prediction error is given when the number of components is equal to 12. When the model is used on test data the mean-square error is calculated to be equal to `r plsr.mse`. Compared to the mean-square error obtained for the PCR model so is the value slightly lower for the PLS model. The PLS model therefore seems to work equally well as the PCR model, even though it only uses 12 components compared to the 25 components used by the PCR model.  
+With the PLS, the MSEP behaves differently than for the PCR. Generally, it is higher, since the dip last shorter. The best gain in the estimation error appear to be when using 3 components. For 3 components, $MSEP=0.1437715$. 
 
 
 
 ## Appendix
 ### R-code
-```{r code=readLines(knitr::purl('C:/Users/Gustav/Documents/Machine-Learning/Lab 4/Lab4.Rmd', documentation = 0)), eval = FALSE}
+```{r code=readLines(knitr::purl('C:/Users/Gustav/Documents/Machine-Learning/Lab 4/Lab4.Rmd', documentation = 1)), eval = FALSE}
 
 ```

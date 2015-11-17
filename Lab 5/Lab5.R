@@ -9,31 +9,48 @@ library(ggplot2)
 ggplot(mrt_rate, aes(y=LMR, x=Day)) + geom_point()
 
 # 1.2
-
 NadWat <- function(X, Y, Xtest, lambda){
-
   # Wants to go through all x for every Xtest
   # Compute the value for every run and sum the 136 values
   # Do this for every value in xtest
-  
+  NdaWat <- 0
+  K <- 0
+  h <- 0
   for (i in 1:length(Xtest)){ 
     for (j in 1:length(X)){
-     if(abs(X[j]-X[i]) < lambda ){
-       K[j] <- 
+     if(abs(X[j]-Xtest[i]) < lambda ){
+       K[j] <- 3/4 * (1 - (abs(X[j] - Xtest[i]) / lambda)^2)
      }else{
        K[j] <- 0
-     } 
+     }
     }
-    
-    
+    h <- h+1
+   NdaWat[h] <- sum(K*Y) / sum(K)
   }
-  
+  return(NdaWat)
 }
 
 
+
 # 1.3
+Xt <- seq(1, 171, 0.1)
+# a) A very smooth curve
+tryA <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day, 150)
+plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
+points(tryA, x=mrt_rate$Day, type="l", lwd=5)
+MSEA <- sum((mrt_rate$LMR - tryA)^2 / 136)
 
+# b) A wiggly curve
+tryB <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day,3)
+plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
+points(tryB, x=mrt_rate$Day, type="l", lwd=5)
+MSEB <- sum((mrt_rate$LMR - tryB)^2 / 136)
 
+# c) A good fit
+tryC <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day,8)
+plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
+points(tryC, x=mrt_rate$Day, type="l", lwd=5)
+MSEC <- sum((mrt_rate$LMR - tryC)^2 / 136)
 
 # 1.4
 library(kernlab)
@@ -58,18 +75,26 @@ fittedV <- data.frame(LMR=LMR_SVM@fitted)
 originalV <- data.frame(LMR=mrt_rate$LMR)
 ValuSVM <- cbind(rbind(originalV, fittedV),Type=c(rep("OrigV", 136), rep("FittedV", 136)), Day=mrt_rate$Day)
 ggplot(ValuSVM, aes(y=LMR, x=Day)) + geom_point(aes(col=Type))
+MSE_SVM <- sum((originalV - fittedV)^2 / length(fittedV))
 
+plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
+points(tryA, x=mrt_rate$Day, type="l", lwd=3, col="blue")
+points(tryB, x=mrt_rate$Day, type="l", lwd=3, col="steelblue")
+points(tryC, x=mrt_rate$Day, type="l", lwd=3, col="darkblue")
+points(fittedV[,1], x=mrt_rate$Day, type="l", lwd=3, col="seagreen")
+legend(120,-4,c("1.3a","1.3b", "1.3c", "1.4"), lty=c(1,1), 
+       lwd=c(2.5,2.5),col=c("blue","steelblue", "darkblue", "seagreen"),  cex=0.6) 
 
 # 1.5
 library(fANCOVA)
 
-loessLMR <- loess.as(mrt_rate$Day, mrt_rate$LMR, 1, family = "gaussian", plot=TRUE)
+loessLMR <- loess.as(mrt_rate$Day, mrt_rate$LMR, 1, family = "gaussian", plot=FALSE, 
+                     criterion="gcv")
 summary(loessLMR)
 
 predLoess <- predict(loessLMR, se=TRUE)
 upper <- predLoess$fit + predLoess$se.fit * 2
 lower <- predLoess$fit - predLoess$se.fit * 2
-predLoess$residual.scale
 
 plot(loessLMR, type="l")
 points(loessLMR$x, upper, type="l", col="orange")
@@ -124,13 +149,12 @@ plot(rbf_bwitdhSVM, data=olive)
 
 # 3
 olive_acid <- olive[, c(2, 4:11)]
+set.seed(12345)
 rbf_spocSVM <- ksvm(Region ~. , olive_acid, type="spoc-svc", 
                       kernel="vanilladot", cross=10)
 
 rbf_spocSVM@nSV
-
 rbf_spocSVM@error
-rbf_spocSVM@fitted
-10/ sum(table(rbf_spocSVM@fitted, olive_acid$Region))
+rbf_spocSVM@
 
 }
