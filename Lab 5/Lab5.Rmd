@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Machine Learning - Lab 5"
 author: "Gustav Sternelöv"
-date: "Sunday, November 15, 2015"
+date: "Wednesday, November 18, 2015"
 output:
   pdf_document:
     fig_height: 4
@@ -25,6 +25,7 @@ ggplot(mrt_rate, aes(y=LMR, x=Day)) + geom_point()
 ```
 
 ## 1.2 - 1.3
+A function that performs Nadarya-Watson kernel smoothing with Epanecnikov kernel is implemented and tested in this step. The function depends on an x and y vector, a vector Xtest that contains the grid and the value $\lambda$ that represents the bandwitdh. 
 
 ```{r, echo=FALSE}
 # 1.2
@@ -52,6 +53,7 @@ NadWat <- function(X, Y, Xtest, lambda){
 
 
 ### a)
+The aim here is to get a very smooth curve and this is achieved by setting $\lambda$ to 150.  
 
 ```{r, echo=FALSE}
 # a) A very smooth curve
@@ -59,10 +61,10 @@ tryA <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day, 150)
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
 points(tryA, x=mrt_rate$Day, type="l", lwd=5)
 MSEA <- sum((mrt_rate$LMR - tryA)^2 / 136)
-MSEA
 ```
 
 ### b)
+The opposite to a very smooth curve is a very wiggly curve. An example of this type of predicted curve is given for a $\lambda$ value equal to 3.  
 
 ```{r, echo=FALSE}
 # b) A wiggly curve
@@ -70,10 +72,10 @@ tryB <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day,3)
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
 points(tryB, x=mrt_rate$Day, type="l", lwd=5)
 MSEB <- sum((mrt_rate$LMR - tryB)^2 / 136)
-MSEB
 ```
 
 ### c)
+In the last example the aim is to get a predicted curve that seems to be a reasonably good fit. This is achieved by choosing a $\lambda$ value that neither overfit nor underfit data. A value for $\lambda$ equal to 8 then seem to be an appropriate choice.  
 
 ```{r, echo=FALSE}
 # c) A good fit
@@ -81,11 +83,13 @@ tryC <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day,8)
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
 points(tryC, x=mrt_rate$Day, type="l", lwd=5)
 MSEC <- sum((mrt_rate$LMR - tryC)^2 / 136)
-MSEC
 ```
 
+### Comparison of the predicted curves
+The connection between the bandwidth parameter $\lambda$ and the form of the predicted curves is straightforward. High values of $\lambda$ results in more smooth curves and low values results in curves with a more wiggly form. The best model is thought to be the model presented in *3.c* and the estimated MSE value for this model is `r MSEC`. 
+
 ## 1.4
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 library(kernlab)
 set.seed(12345)
 epsi <- seq(0.1, 3.5, 0.2)
@@ -123,7 +127,7 @@ legend(120,-4,c("1.3a","1.3b", "1.3c", "1.4"), lty=c(1,1),
 
 ## 1.5
 
-```{r, echo=FALSE, message=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(fANCOVA)
 loessLMR <- loess.as(mrt_rate$Day, mrt_rate$LMR, 1, family = "gaussian", plot=FALSE, 
                      criterion="gcv")
