@@ -1,11 +1,8 @@
 ---
 title: "Introduction to Machine Learning - Lab 5"
-author: "Gustav Sternelöv"
-date: "Wednesday, November 18, 2015"
-output:
-  pdf_document:
-    fig_height: 4
-    fig_width: 7
+author: "Martina, Araya, Andrea, Gustav Sternelöv"
+date: "Thursday, November 19, 2015"
+output: pdf_document
 ---
 
 # Assignment 1
@@ -25,7 +22,16 @@ ggplot(mrt_rate, aes(y=LMR, x=Day)) + geom_point()
 ```
 
 ## 1.2 - 1.3
-A function that performs Nadarya-Watson kernel smoothing with Epanecnikov kernel is implemented and tested in this step. The function depends on an x and y vector, a vector Xtest that contains the grid and the value $\lambda$ that represents the bandwitdh. 
+\begin{equation}
+ K_{\lambda}(x,x_0)=\frac{3}{4}\left(1- \left( \frac{|x-x_0|}{\lambda}\right)^2 \right) I\left( \frac{|x-x_0|}{\lambda} <1 \right)  
+ \end{equation}\
+
+\begin{equation}
+\hat{f}(x_0)=\frac{\sum_{i=1}^N{K_{\lambda}(x_i,x_0)y_i}}{\sum_{i=1}^N{K_{\lambda}(x_i,x_0)}}  
+ \end{equation}\
+
+
+The Nadaraya-Watson kernel smoothing with Epanechnikov kernel is computed according to (1). Here $x$ is the values in the X vector, $x_0$ is the values in the Xtest vector and $y$ the values in the Y vector. The predicted target for $x_0$ is computed as (2). The implemented function can be seen in *Appendix*.
 
 ```{r, echo=FALSE}
 # 1.2
@@ -89,17 +95,17 @@ MSEC <- sum((mrt_rate$LMR - tryC)^2 / 136)
 The connection between the bandwidth parameter $\lambda$ and the form of the predicted curves is straightforward. High values of $\lambda$ results in more smooth curves and low values results in curves with a more wiggly form. The best model is thought to be the model presented in *3.c* and the estimated MSE value for this model is `r MSEC`. 
 
 ## 1.4
-Another way to fit the logarithm of rate as a function of the variable day is by using SVM for regression. An RBF kernel is used and the task is to find a value for the parameter *epsilon*, $\epsilon$, that results in a good fit. The MSE for values of $\epsilon$ from 0.1 to 3.5 by steps of 0.2 is calculated to investigate what value of $\epsilon$ that can be reasonable to select.
+Another way to fit the logarithm of rate as a function of the variable day is by using SVM for regression. An RBF kernel is used and the task is to find a value for the parameter *epsilon*, $\epsilon$, that results in a good fit. The MSE for values of $\epsilon$ from 0.1 to 3 by steps of 0.2 is calculated to investigate what value of $\epsilon$ that can be reasonable to select.
 
 ```{r, echo=FALSE, warning=FALSE}
 library(kernlab)
 set.seed(12345)
-epsi <- seq(0.1, 3.5, 0.2)
+epsi <- seq(0.1, 3, 0.2)
 j <- 1
 MSE_SVM <- 0
 for(i in epsi){
   LMR_SVM <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
-                  kernel="rbfdot", epsilon=i)
+                  kernel="rbfdot", epsilon=i, scaled=FALSE)
   MSE_SVM[j] <- sum(((LMR_SVM@fitted - mrt_rate$LMR)^2)/ 136)
   j <- j+1
 }
@@ -108,37 +114,38 @@ plot(epsi, MSE_SVM, type="b", pch=21, bg="orange")
 
 
 ```
-The lowest MSE value is obtained for an $\epsilon$ value equal to 2.3, so a reasonable fit is assumed to be given by that model.  
+The lowest MSE value is obtained for an $\epsilon$ value equal to 0.1, so a reasonable fit is assumed to be given by that model.  
 To investigate how the fit changes when $\epsilon$ increases the predicted curves for a set of different values of $\epsilon$ are compared.  
 
 ```{r, echo=FALSE}
-eps_mod <- seq(0.1, 3.5, 0.2)
-eps_mod <- eps_mod[c(1,6,12,18)]
-eps_SVM <- matrix(ncol=4, nrow=136)
+eps_mod <- seq(0.1, 3, 0.2)
+eps_mod <- eps_mod[c(1,6,12)]
+eps_SVM <- matrix(ncol=3, nrow=136)
 j <- 0
 set.seed(12345)
 for (i in eps_mod){
   j <- j+1
   eps_SVMR <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
-                  kernel="rbfdot", epsilon=eps_mod[i])  
+                  kernel="rbfdot", epsilon=eps_mod[i], scaled=FALSE)  
   eps_SVM[,j] <- eps_SVMR@fitted[,1]
 }
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange", ylim=c(-6.5, 1))
 points(eps_SVM[,1], x=mrt_rate$Day, type="l", lwd=3, col="blue")
 points(eps_SVM[,2], x=mrt_rate$Day, type="l", lwd=3, col="brown")
 points(eps_SVM[,3], x=mrt_rate$Day, type="l", lwd=3, col="purple")
-points(eps_SVM[,4], x=mrt_rate$Day, type="l", lwd=3, col="seagreen")
-legend(120,-4,c("epsilon=0.1","epsilon=1.1", "epsilon=2.3", "epsilon=3.5"), lty=c(1,1), 
-       lwd=c(5,5),col=c("blue","brown", "purple", "seagreen"),  cex=0.65) 
+legend(120,-4,c("epsilon=0.1","epsilon=1.1", "epsilon=2.3"), lty=c(1,1), 
+       lwd=c(5,5),col=c("blue","brown", "purple"),  cex=0.65)
 ```
+The value of $\epsilon$ affects the number of support vectors that used to construct the model. The bigger $\epsilon$, the fewer support vectors are selected which also results in more flat estimates. Moreover, an increase in $\epsilon$ means a reduction for the model accuracy.
+
 For higher and higher values for $\epsilon$ the predicted curves becomes more and more smooth. This is because $\epsilon$ functions as a smoothness parameter, like $\lambda$ for the function implemented in 1.3.  
 
 A comparsion between the predicted curves from the models in 1.3 and 1.4 is given with the following graph. 
 ```{r, echo=FALSE}
-# Compares original and fitted values, epsilion =2.3
+# Compares original and fitted values, epsilion =0.1
 set.seed(12345)
 LMR_SVM <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
-                kernel="rbfdot", epsilon=2.3)
+                kernel="rbfdot", epsilon=0.1, scaled=FALSE)
 
 MSE_SVM <- sum(((LMR_SVM@fitted - mrt_rate$LMR)^2)/ 136)
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
@@ -146,12 +153,14 @@ points(tryA, x=mrt_rate$Day, type="l", lwd=3, col="blue")
 points(tryB, x=mrt_rate$Day, type="l", lwd=3, col="brown")
 points(tryC, x=mrt_rate$Day, type="l", lwd=3, col="purple")
 points(LMR_SVM@fitted[,1], x=mrt_rate$Day, type="l", lwd=3, col="seagreen")
-legend(120,-4,c("lambda=150","lambda=3", "lambda=10", "epsilon=2.3"), lty=c(1,1), 
+legend(120,-4,c("lambda=150","lambda=3", "lambda=10", "epsilon=0.1"), lty=c(1,1), 
        lwd=c(5,5),col=c("blue","brown", "purple", "seagreen"),  cex=0.65) 
 ```
 
 The predicted curve for the SVM model seem to be a bad fit, especially when it is compared to predicted curve for the model from 1.3c)(the model with $\lambda$ equal to 10). 
 The MSE for the SVM model is `r MSE_SVM` and for the best model in 1.3 the MSE was `r MSEC`. In the light of both better looking prediction curves and lower MSE the best model from 1.3 undoubtedly seem to be a better fit than the SVM model.
+
+The predicted curves for the the best fit in 1.3 and the SVM model is rather similar. The latter is concluded to be a slightly better fit since it has a lower MSE. 
 
 ## 1.5
 A third method used to model the logarithm of Rate against Day is *loess*. A plot of the fitted values and 95 % confidence bands can be seen below.  
@@ -168,7 +177,7 @@ points(loessLMR$x, upper, type="l", col="orange")
 points(loessLMR$x, lower, type="l" ,col="orange")
 ```
 
-By looking at the plot it is not suggested that Rate is an exponential function of Day. In order for the Gompertz hypothesis to be satisfied the values should lie on a line. 
+By looking at the plot it is not suggested that Rate is an exponential function of Day. In order for the Gompertz hypothesis to be satisfied the fitted values should be increasing for all values for the variale Day.  
 
 # Assignment 2
 The data set analysed in this assignment consists of information about 572 italian olive oils coming from different regions of the country. How much of different acids each olive oil contains and from which region and area the olive oil comes from is the information given. 
@@ -178,7 +187,7 @@ library(kernlab)
 ```
 
 ## 2.1
-Two of the acids in the data set are *Oleic* and *Linoleic*. In the following graph these acids are plotted against each other and coloured after region where oils from region two are light blue and the others are dark blue.
+Two of the acids in the data set are *Oleic* and *Linoleic*. In the following graph these acids are plotted against each other and coloured after region where oils from region two are light blue and the others are dark blue.  
 
 ```{r, echo=FALSE, fig.height=3, fig.width=6}
 olive$R2 <- 0
@@ -192,7 +201,8 @@ for (i in 1:572){
 ggplot(olive, aes(x=linoleic, y=oleic)) + geom_point(aes(col=R2))
 
 ```
-The oils from region two are quite easy to identify since they lies rather separately from oils from the other regions. At least that is true for the majority of the observations from region two. Some of the dark blue points lies very close to the outer edges of the group of light blue points.  For these observations it may be hard for a model to correctly classify an olive oil as coming from region two or from one of the other regions. 
+  
+  The oils from region two are quite easy to identify since they lies rather separately from oils from the other regions. At least that is true for the majority of the observations from region two. Some of the dark blue points lies very close to the outer edges of the group of light blue points.  For these observations it may be hard for a model to correctly classify an olive oil as coming from region two or from one of the other regions. 
 
 ## 2.2
 ```{r, echo=FALSE}
@@ -247,19 +257,26 @@ The misclassification rate: `r rbf_bwitdhSVM@error`
 The amount of support vectors: `r rbf_bwitdhSVM@nSV`
 
 ### Comparison of models
-In terms of misclassification it is very hard to pick the best model since the misclassification rates for model *b*, *c* and *d* is exactly the same. Model *a* has a misclassification rate ten times as high and is therefore suggested to be a worse fit than the others. 
+```{r,echo=FALSE}
+rate <- c(linearSVM@error,rbfSVM@error,rbf_penSVM@error,rbf_bwitdhSVM@error)
+sv <- c(linearSVM@nSV, rbfSVM@nSV, rbf_penSVM@nSV, rbf_bwitdhSVM@nSV)
+mytable <- data.frame(rate, "nSV"=sv)
+rownames(mytable) <- c("Model a", "Model b", "Model c", "Model d")
+mytable
+```
+
+Four different types of SVM models are fitted with R2 as response and Oleic and Linoleic as predictors. In the first figure we can see the SVM misclassification plot for model a which has a linear kernel, misclassification rate 0.0524 and 119 support vectors. The white area corresponds to the classification boundary and in this case it does not look like it fits well. The blue area corresponds to high probability that the observation is in region 2 and red to low probability. The filled black symbols corresponds to the support vectors. We can conclude that this model does not fit well. In the second figure we can see the SVM misclassification plot for model b which has a RBF kernel, misclassification rate 0.0052 and 52 support vectors. Here the classification boundary looks much better than for model a. In the third figure we can see the SVM misclassification plot for model c which has a RBF kernel, penalty C=100, misclassification rate 0.0052 and 32 support vectors. In the fourth figure we can see the SVM misclassification plot for model d which has a RBF kernel, kernel bandwith $\sigma$ =10, misclassification rate 0.0052 and 119 support vectors. From these information the model c seems to be the best since it has a low misclassification rate and quite few support vectors.  
+
+The penalty C (cost of constraints violation) used in model c makes it more expensive for a observation to be placed near the decision boundary, and thus have an impact on how the decision boundary is formed. In the fourth figure where we chose kernel bandwith to 10 we see that the red classification area is bigger, and this is due to that more observations is included in the classification
 
 The parameter chosen in step c, that penalty C is equal to 100, defines the cost of constraints violation. The effect of this is that fewer support vectors are used to make classifications. 
 
 In step d the value of sigma has the concrete effect that the amount of support vectors increases. That is because a relatively large sigma, like in this case, gives a larger margin width and all observations that lies inside the margin lines becmoes support vectors.(?)
 
-The amount of support vectors in the models differs significantly. In model *a* and in model *d* 119 of the 572 observated values are used as support vectors. Less than a half of this amount of support vectors are used in model *b*, 52, and in model *c* 32 values are used as support vectors.  
-
-The best model is suggested to be model *c* because it has the lowest amount of support vectors. It uses the lowest number of observed values as support vectors and predicted equally well as model *b* and *d* that has a much larger amount of support vectors.
 
 
 ## 2.3
-Next, a SVM classification model with region as response and all acids in data as predictors is created. The appropriateness for the model is evaluated with help of the following values. 
+Next, a SVM classification model with region as response and all acids in data as predictors is created. 
 ```{r, echo=FALSE, include=FALSE}
 set.seed(12345)
 olive_acid <- olive[, c(2, 4:11)]
@@ -267,12 +284,24 @@ rbf_spocSVM <- ksvm(Region ~. , olive_acid, type="spoc-svc",
                       kernel="vanilladot", cross=10)
 ```
 
-The misclassification rate: `r rbf_spocSVM@error`  
-The amount of support vectors: `r rbf_spocSVM@nSV`  
-The cross-validation score: `r rbf_spocSVM@cross`  
+\begin{table}
+\centering
+\begin{tabular}{|r|rrr|}
+  \hline
+ & 1 & 2 & 3 \\ 
+  \hline
+1 & 313 &   0 &   0 \\ 
+  2 &   5 &  98 &   0 \\ 
+  3 &   5 &   0 & 151 \\ 
+   \hline
+\end{tabular}
+\end{table}
 
-The low misclassification rate implies that SVM is a good classification model for these data. This suggestion is also supported by the relatively small amount of support vectors and the low cross-validation score. 
 
+\[  \mbox{Misclassification rate} = \frac{5+5}{5+5+313+98+151} = 0.0175  \]\
+
+
+From this classification model the confusion matrix as seen in the table above is produced. The misclassification rate in this classification is less than 2 \%. 52 support vector are chosen and the cross validation error (score) is 0.0298. It seems that SVM is a good classification model for these data.
 
 # Appendix
 ## R-code

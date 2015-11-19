@@ -1,13 +1,8 @@
-
-# Assignment 1
 mrt_rate <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 5/mortality_rate.csv", sep=";")
 
-# 1.1
-# The logarithm of rate
-mrt_rate$LMR <- log(mrt_rate$Rate)
 library(ggplot2)
+mrt_rate$LMR <- log(mrt_rate$Rate)
 ggplot(mrt_rate, aes(y=LMR, x=Day)) + geom_point()
-
 # 1.2
 NadWat <- function(X, Y, Xtest, lambda){
   # Wants to go through all x for every Xtest
@@ -29,30 +24,21 @@ NadWat <- function(X, Y, Xtest, lambda){
   }
   return(NdaWat)
 }
-
-
-
-# 1.3
-Xt <- seq(1, 171, 0.1)
 # a) A very smooth curve
 tryA <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day, 150)
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
 points(tryA, x=mrt_rate$Day, type="l", lwd=5)
 MSEA <- sum((mrt_rate$LMR - tryA)^2 / 136)
-
 # b) A wiggly curve
 tryB <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day,3)
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
 points(tryB, x=mrt_rate$Day, type="l", lwd=5)
 MSEB <- sum((mrt_rate$LMR - tryB)^2 / 136)
-
 # c) A good fit
-tryC <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day,8)
+tryC <- NadWat(mrt_rate$Day, mrt_rate$LMR, mrt_rate$Day,10)
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
 points(tryC, x=mrt_rate$Day, type="l", lwd=5)
 MSEC <- sum((mrt_rate$LMR - tryC)^2 / 136)
-
-# 1.4
 library(kernlab)
 set.seed(12345)
 epsi <- seq(0.1, 3.5, 0.2)
@@ -66,47 +52,53 @@ for(i in epsi){
 }
 
 plot(epsi, MSE_SVM, type="b", pch=21, bg="orange")
-epsi[12]
+
+
+eps_mod <- seq(0.1, 3.5, 0.2)
+eps_mod <- eps_mod[c(1,6,12,18)]
+eps_SVM <- matrix(ncol=4, nrow=136)
+j <- 0
+set.seed(12345)
+for (i in eps_mod){
+  j <- j+1
+  eps_SVMR <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
+                  kernel="rbfdot", epsilon=eps_mod[i])  
+  eps_SVM[,j] <- eps_SVMR@fitted[,1]
+}
+plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange", ylim=c(-6.5, 1))
+points(eps_SVM[,1], x=mrt_rate$Day, type="l", lwd=3, col="blue")
+points(eps_SVM[,2], x=mrt_rate$Day, type="l", lwd=3, col="brown")
+points(eps_SVM[,3], x=mrt_rate$Day, type="l", lwd=3, col="purple")
+points(eps_SVM[,4], x=mrt_rate$Day, type="l", lwd=3, col="seagreen")
+legend(120,-4,c("epsilon=0.1","epsilon=1.1", "epsilon=2.3", "epsilon=3.5"), lty=c(1,1), 
+       lwd=c(5,5),col=c("blue","brown", "purple", "seagreen"),  cex=0.65) 
 # Compares original and fitted values, epsilion =2.3
+set.seed(12345)
 LMR_SVM <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
                 kernel="rbfdot", epsilon=2.3)
 
-fittedV <- data.frame(LMR=LMR_SVM@fitted)
-originalV <- data.frame(LMR=mrt_rate$LMR)
-ValuSVM <- cbind(rbind(originalV, fittedV),Type=c(rep("OrigV", 136), rep("FittedV", 136)), Day=mrt_rate$Day)
-ggplot(ValuSVM, aes(y=LMR, x=Day)) + geom_point(aes(col=Type))
-MSE_SVM <- sum((originalV - fittedV)^2 / length(fittedV))
-
+MSE_SVM <- sum(((LMR_SVM@fitted - mrt_rate$LMR)^2)/ 136)
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
 points(tryA, x=mrt_rate$Day, type="l", lwd=3, col="blue")
-points(tryB, x=mrt_rate$Day, type="l", lwd=3, col="steelblue")
-points(tryC, x=mrt_rate$Day, type="l", lwd=3, col="darkblue")
-points(fittedV[,1], x=mrt_rate$Day, type="l", lwd=3, col="seagreen")
-legend(120,-4,c("1.3a","1.3b", "1.3c", "1.4"), lty=c(1,1), 
-       lwd=c(2.5,2.5),col=c("blue","steelblue", "darkblue", "seagreen"),  cex=0.6) 
-
-# 1.5
+points(tryB, x=mrt_rate$Day, type="l", lwd=3, col="brown")
+points(tryC, x=mrt_rate$Day, type="l", lwd=3, col="purple")
+points(LMR_SVM@fitted[,1], x=mrt_rate$Day, type="l", lwd=3, col="seagreen")
+legend(120,-4,c("lambda=150","lambda=3", "lambda=10", "epsilon=2.3"), lty=c(1,1), 
+       lwd=c(5,5),col=c("blue","brown", "purple", "seagreen"),  cex=0.65) 
 library(fANCOVA)
-
 loessLMR <- loess.as(mrt_rate$Day, mrt_rate$LMR, 1, family = "gaussian", plot=FALSE, 
                      criterion="gcv")
-summary(loessLMR)
-
 predLoess <- predict(loessLMR, se=TRUE)
 upper <- predLoess$fit + predLoess$se.fit * 2
 lower <- predLoess$fit - predLoess$se.fit * 2
-
 plot(loessLMR, type="l")
 points(loessLMR$x, upper, type="l", col="orange")
 points(loessLMR$x, lower, type="l" ,col="orange")
 
 
-{# Assignment 2
 olive <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 5/olive.csv", sep=",")
-# 2.1
-# construct variable R2 which is equal to 1 if the oil comes from region 2 and 0 otherwise.
+library(kernlab)
 olive$R2 <- 0
-
 for (i in 1:572){
   if(olive$Region[i] == 2){
     olive$R2[i] = 1
@@ -114,47 +106,28 @@ for (i in 1:572){
     olive$R2[i] = 0
   }
 }
-library(ggplot2)
 ggplot(olive, aes(x=linoleic, y=oleic)) + geom_point(aes(col=R2))
-# By just looking at the plot it is easy to identify the oils from region 2,
-# it may be harder to find a suitable model. 
 
-# 2.2
-library(kernlab)
 set.seed(12345)
-# a)
-linearSVM <- ksvm(R2 ~ oleic+linoleic, olive, type="C-svc", 
-                  kernel="vanilladot")
+linearSVM <- ksvm(R2 ~ oleic+linoleic, olive, type="C-svc", kernel="vanilladot")
 plot(linearSVM, data=olive)
-
-
-# b)
+set.seed(12345)
 rbfSVM <- ksvm(R2 ~ oleic+linoleic, olive, type="C-svc", 
                kernel="rbfdot")
 plot(rbfSVM, data=olive)
-
-
-# c)
+set.seed(12345)
 rbf_penSVM <- ksvm(R2 ~ oleic+linoleic, olive, type="C-svc", 
                kernel="rbfdot", C=100)
 plot(rbf_penSVM, data=olive)
-
-
-# d)
+set.seed(12345)
 rbf_bwitdhSVM <- ksvm(R2 ~ oleic+linoleic, olive, type="C-svc", 
                    kernel="rbfdot", kpar=list(sigma=10))
 plot(rbf_bwitdhSVM, data=olive)
-
-
-
-# 3
-olive_acid <- olive[, c(2, 4:11)]
 set.seed(12345)
+olive_acid <- olive[, c(2, 4:11)]
 rbf_spocSVM <- ksvm(Region ~. , olive_acid, type="spoc-svc", 
                       kernel="vanilladot", cross=10)
+## 
 
-rbf_spocSVM@nSV
-rbf_spocSVM@error
-rbf_spocSVM@
 
-}
+plot(exp(loessLMR$fitted), type="l")
