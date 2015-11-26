@@ -41,12 +41,12 @@ points(tryC, x=mrt_rate$Day, type="l", lwd=5)
 MSEC <- sum((mrt_rate$LMR - tryC)^2 / 136)
 library(kernlab)
 set.seed(12345)
-epsi <- seq(0.1, 3.5, 0.2)
+epsi <- seq(0.1, 3, 0.2)
 j <- 1
 MSE_SVM <- 0
 for(i in epsi){
   LMR_SVM <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
-                  kernel="rbfdot", epsilon=i)
+                  kernel="rbfdot", epsilon=i, scaled=FALSE)
   MSE_SVM[j] <- sum(((LMR_SVM@fitted - mrt_rate$LMR)^2)/ 136)
   j <- j+1
 }
@@ -54,28 +54,27 @@ for(i in epsi){
 plot(epsi, MSE_SVM, type="b", pch=21, bg="orange")
 
 
-eps_mod <- seq(0.1, 3.5, 0.2)
-eps_mod <- eps_mod[c(1,6,12,18)]
-eps_SVM <- matrix(ncol=4, nrow=136)
+eps_mod <- seq(0.1, 3, 0.2)
+eps_mod <- eps_mod[c(1,6,12)]
+eps_SVM <- matrix(ncol=3, nrow=136)
 j <- 0
 set.seed(12345)
 for (i in eps_mod){
   j <- j+1
   eps_SVMR <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
-                  kernel="rbfdot", epsilon=eps_mod[i])  
+                  kernel="rbfdot", epsilon=eps_mod[i], scaled=FALSE)  
   eps_SVM[,j] <- eps_SVMR@fitted[,1]
 }
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange", ylim=c(-6.5, 1))
 points(eps_SVM[,1], x=mrt_rate$Day, type="l", lwd=3, col="blue")
 points(eps_SVM[,2], x=mrt_rate$Day, type="l", lwd=3, col="brown")
 points(eps_SVM[,3], x=mrt_rate$Day, type="l", lwd=3, col="purple")
-points(eps_SVM[,4], x=mrt_rate$Day, type="l", lwd=3, col="seagreen")
-legend(120,-4,c("epsilon=0.1","epsilon=1.1", "epsilon=2.3", "epsilon=3.5"), lty=c(1,1), 
-       lwd=c(5,5),col=c("blue","brown", "purple", "seagreen"),  cex=0.65) 
-# Compares original and fitted values, epsilion =2.3
+legend(120,-4,c("epsilon=0.1","epsilon=1.1", "epsilon=2.3"), lty=c(1,1), 
+       lwd=c(5,5),col=c("blue","brown", "purple"),  cex=0.65)
+# Compares original and fitted values, epsilion =0.1
 set.seed(12345)
 LMR_SVM <- ksvm(LMR ~ Day, mrt_rate, type="eps-svr", 
-                kernel="rbfdot", epsilon=2.3)
+                kernel="rbfdot", epsilon=0.1, scaled=FALSE)
 
 MSE_SVM <- sum(((LMR_SVM@fitted - mrt_rate$LMR)^2)/ 136)
 plot(mrt_rate$Day, mrt_rate$LMR, pch=21, bg="orange")
@@ -83,7 +82,7 @@ points(tryA, x=mrt_rate$Day, type="l", lwd=3, col="blue")
 points(tryB, x=mrt_rate$Day, type="l", lwd=3, col="brown")
 points(tryC, x=mrt_rate$Day, type="l", lwd=3, col="purple")
 points(LMR_SVM@fitted[,1], x=mrt_rate$Day, type="l", lwd=3, col="seagreen")
-legend(120,-4,c("lambda=150","lambda=3", "lambda=10", "epsilon=2.3"), lty=c(1,1), 
+legend(120,-4,c("lambda=150","lambda=3", "lambda=10", "epsilon=0.1"), lty=c(1,1), 
        lwd=c(5,5),col=c("blue","brown", "purple", "seagreen"),  cex=0.65) 
 library(fANCOVA)
 loessLMR <- loess.as(mrt_rate$Day, mrt_rate$LMR, 1, family = "gaussian", plot=FALSE, 
@@ -94,8 +93,6 @@ lower <- predLoess$fit - predLoess$se.fit * 2
 plot(loessLMR, type="l")
 points(loessLMR$x, upper, type="l", col="orange")
 points(loessLMR$x, lower, type="l" ,col="orange")
-
-
 olive <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 5/olive.csv", sep=",")
 library(kernlab)
 olive$R2 <- 0
@@ -128,6 +125,3 @@ olive_acid <- olive[, c(2, 4:11)]
 rbf_spocSVM <- ksvm(Region ~. , olive_acid, type="spoc-svc", 
                       kernel="vanilladot", cross=10)
 ## 
-
-
-plot(exp(loessLMR$fitted), type="l")
