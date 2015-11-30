@@ -9,7 +9,8 @@ output:
 ---
 
 # Assignment 1
-## 1.2
+## 1.1
+In *1.1* a function that conducts a piecewise constant basis expansion is implemented. The function takes the argument *data*, where the first column is supposed to be the input vector and the second column the response vector, and the argument *k* which is the values for the knots. Returned by the function is a graph showing the results of the conducted expansion.
 ```{r, echo=FALSE}
 # Assignment 1
 # 1.2
@@ -36,12 +37,13 @@ PiecewiseCBS <- function(data, k){
   YhY <- YhY[order(YhY[,3]),] 
   
   plot(x=cube$x, y=cube$y, pch=21, bg="darkorange")
-  points(x=YhY[,3], y=YhY[,2], col="grey", pch=21, bg="lightblue", type="b", lwd=2, cex=1.5)
+  points(x=YhY[,3], y=YhY[,2], col="seagreen", type="l", lwd=3)
 }
 ```
 
 ## 1.2
-
+The created function is now tested on a dataset named *cube* which has two variables, *x* and *y*. Two knots are used, at *x*=3 and at *x*=6.  
+The result that is obtained by running the function on this data set is shown below.  
 ```{r, echo=FALSE}
 cube <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 7/cube.csv", sep=";", header=TRUE)
 
@@ -57,20 +59,25 @@ influenza <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 7/influenz
 
 ## 2.1
 
-```{r,echo=FALSE}
+```{r,echo=FALSE, warning=FALSE}
 # 2.1
 library(ggplot2)
+library(gridExtra)
 # time versus mortality
-ggplot(influenza, aes(x=Time, y=Mortality),) + geom_point() +
-  theme(axis.text.x = element_blank()) + labs(x = "Time (weekly data, 1995-2003)")
+Mort <- ggplot(influenza, aes(x=Time, y=Mortality),) + geom_point() +
+  theme(axis.text.x = element_blank()) + labs(x = "Time (weekly data, 1995-2003)")+ ggtitle("Time vs Mortality")
 # time versus influenza
-ggplot(influenza, aes(x=Time, y=Influenza),) + geom_point() +
-  theme(axis.text.x = element_blank()) + labs(x = "Time (weekly data, 1995-2003)")
+Infl <- ggplot(influenza, aes(x=Time, y=Influenza),) + geom_point() +
+  theme(axis.text.x = element_blank()) + labs(x = "Time (weekly data, 1995-2003)")+ ggtitle("Time vs Influenza")
+grid.arrange(Mort, Infl, ncol=2)
 ```
+The graph over time versus mortality seem to follow a seasonal pattern. A closer look gives that the mortality is at its lowest during the summer and at its highest levels during the winter. This pattern is almost identical from year to year.  
+
+Regarding the graph over time versus influenza it can be seen the values are zero or very close to zero for the majority of the weeks during a year. It is during the coldest weeks of the winter the number of influenza cases rises. How many that is hit by the influenza is varying from year to year. 
 
 
 ## 2.2
-
+Report the probabilistic model...
 ```{r, echo=FALSE, message=FALSE}
 library(mgcv)
 model2_2 <- gam(formula=Mortality ~ Year + s(Week), data=influenza)
@@ -78,25 +85,41 @@ model2_2 <- gam(formula=Mortality ~ Year + s(Week), data=influenza)
 
 
 ## 2.3
-
+The predicted mortality by the fitted model in *2.2*, blue dots, is compared against the observed mortality, red dots.  
 ```{r, echo=FALSE}
 # Evaluate the fit
 plot(x=as.numeric(influenza$Time), y=influenza$Mortality, pch=21, bg="red")
 points(x=influenza$Time, y=model2_2$fitted.values, col="blue", pch=21, bg="blue")
+
+```  
+It seems to be a decent fit since the fitted values follows the general pattern for the mortality quite well. 
+(Although it does not capture the variation/more extreme values who changes a bit from year to year.)
+
+Next the output of the GAM model is investigated. According to the output the parametric coefficient for the variable *Year* is insignificant and the non-parametric coefficient for the variable *week* is significant. Hence, there is no significant trend saying that the mortality rate changes from one year to another.  
+
+```{r, echo=FALSE}
 # Investigate output
 summary(model2_2)
 
+```
+
+The spline component for the variable *Week* is visualized with the following plot.  
+```{r, echo=FALSE}
 # Visualize the spline component
 plot(model2_2)
 ```
+The plot over the spline component shows how this component affects the fitted values given by the model. For weeks at the start and at the end of the year it raises the mortality and during mid-year it lowers the mortality.  
+
+The conlcusion about the model fit is that it seem to be a decent model. The comparsion between the observed and fitted values showed that the general pattern is captured. A disadvantage is that one of the variables, the parametric coefficient for *Year*, is insignificant.  
 
 ## 2.4
+Two different adjustments are done for the model created in *2.2*. In the first case the penalty factor of the spline function(the number of knots) is set to 3 and in the second case it is set to 30. A comparison of the fitted values with the observed values is given by the plots below.  
 
 ```{r,echo=FALSE}
 # How penalty factor(k) affects the devaince. 
-# Compares for two different values of K (2, 20)
+# Compares for two different values of K (2, 30)
 model2_4v1 <- gam(formula=Mortality ~ Year + s(Week, k=3), data=influenza)
-model2_4v2 <- gam(formula=Mortality ~ Year + s(Week, k=20), data=influenza)
+model2_4v2 <- gam(formula=Mortality ~ Year + s(Week, k=30), data=influenza)
 # Compares fitted and original values for each case
 par(mfrow=c(1,2))
 # v1
@@ -107,17 +130,14 @@ plot(x=as.numeric(influenza$Time), y=influenza$Mortality, pch=21, bg="red")
 points(x=influenza$Time, y=model2_4v2$fitted.values, col="blue", pch=21, bg="blue")
 par(mfrow=c(1,1))
 
-# Splines
-par(mfrow=c(1,2))
-# v1
-plot(model2_4v1)
-# v2
-plot(model2_4v2)
-par(mfrow=c(1,1))
-
 ```
+When the penalty factor (or number of knots) is low the fitted values almost looks exactly the same from year to year. For a higher value of the penalty factor a bit more of the yearly variation is captured. 
+
+The relation between the penalty factor and the degrees of freedom...
+
 
 ## 2.5
+The residuals for the model created in *2.2* and the observed influenza values are plotted against time.  
 
 ```{r, echo=FALSE}
 # 2.5
@@ -125,25 +145,34 @@ par(mfrow=c(1,1))
 plot(x=as.numeric(influenza$Time), y=influenza$Influenza, pch=21, bg="red")
 points(x=influenza$Time, y=model2_2$residuals, col="blue", pch=21, bg="blue")
 ```
+The highest values of the residuals seem to be correlated to the periods of outbreaks of influenza(?)
+Shows well that the model are quite general. For years with either a low or high number of influenza outbreaks the values of the residuals becomes high. 
 
 ## 2.6
-
+Next, a GAM model is fitted where mortality is described by spline functions of *year*, *week* and the number of confirmed cases of influenza. 
 ```{r, echo=FALSE}
 # 2.6
 # Mortality described as spline functions of year, week and influenza. 
-model2_6 <- gam(formula=Mortality ~ s(Week, k=5) + s(Year, k=3) + s(Influenza, k=4), data=influenza)
-# Plots of the splines
-par(mfrow=c(1,3))
-plot(model2_6)
-par(mfrow=c(1,1))
+model2_6 <- gam(formula=Mortality ~ s(Week, k=51) + s(Year, k=8) + s(Influenza, k=84), data=influenza)
 # Use output to test whether or not mortality is influenced by influenza. 
 summary(model2_6)
+```
+Looks like the mortality is influenced by the outbreaks of influenza(?).  
+
+The fitted values for the created model is compared against the observed valuse for mortality. 
+```{r, echo=FALSE}
 # plot fitted against original values
 plot(x=as.numeric(influenza$Time), y=influenza$Mortality, pch=21, bg="red")
 points(x=influenza$Time, y=model2_6$fitted.values, col="blue", pch=21, bg="blue")
+```
 
+The model have a hard time predicting right for the lowest mortality values durint the respective years. 
+Overall a more flexible model than the model created in *2.2*. 
+
+```{r, echo=FALSE}
 # compute SSE
 SSE2_6 <- sum((influenza$Mortality-model2_6$fitted.values)^2)
 SSE2_6
 ```
+
 

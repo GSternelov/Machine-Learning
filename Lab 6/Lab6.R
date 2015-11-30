@@ -25,6 +25,7 @@ Upper1B <- assign1B$fStar + 1.96 * sqrt(diag(assign1B$cov_fStar))
 Lower1B <- assign1B$fStar - 1.96 * sqrt(diag(assign1B$cov_fStar))
 
 plot(y=assign1B$fStar, assign1B$xStar, ylim=c(-2.5,2.5), type="l", lwd=3, col="darkorange")
+points(x=0.4, y=0.719, pch=21, bg="black")
 lines(y=Upper1B, assign1B$xStar, col="seagreen", lwd=3)
 lines(y=Lower1B, assign1B$xStar, col="seagreen", lwd=3)
 assign1C <- PosteriorGP(x=c(0.4, -0.6), y=c(0.719, -0.044), xStar=seq(-1,1, 0.01), hyperParam=c(1, 0.3),
@@ -33,6 +34,7 @@ Upper1C <- assign1C$fStar + 1.96 * sqrt(diag(assign1C$cov_fStar))
 Lower1C <- assign1C$fStar - 1.96 * sqrt(diag(assign1C$cov_fStar))
 
 plot(y=assign1C$fStar, assign1C$xStar, ylim=c(-2.5,2.5), type="l", lwd=3, col="darkorange")
+points(x=c(0.4, -0.6), y=c(0.719, -0.044), pch=21, bg="black")
 lines(y=Upper1C, assign1C$xStar, col="seagreen", lwd=3)
 lines(y=Lower1C, assign1C$xStar, col="seagreen", lwd=3)
 assign1D <- PosteriorGP(x=c(0.8, 0.4, -0.2, -0.6, -1), y=c(-0.664, 0.719, -0.94, -0.044, 0.768), xStar=seq(-1,1, 0.01),
@@ -41,6 +43,7 @@ Upper1D <- assign1D$fStar + 1.96 * sqrt(diag(assign1D$cov_fStar))
 Lower1D <- assign1D$fStar - 1.96 * sqrt(diag(assign1D$cov_fStar))
 
 plot(y=assign1D$fStar, assign1D$xStar, ylim=c(-2.5,2.5),type="l", lwd=3, col="darkorange")
+points(x=c(0.8, 0.4, -0.2, -0.6, -1), y=c(-0.664, 0.719, -0.94, -0.044, 0.768), pch=21, bg="black")
 lines(y=Upper1D, assign1D$xStar, col="seagreen", lwd=3)
 lines(y=Lower1D, assign1D$xStar, col="seagreen", lwd=3)
 assign1E <- PosteriorGP(x=c(0.8, 0.4, -0.2, -0.6, -1), y=c(-0.664, 0.719, -0.94, -0.044, 0.768), xStar=seq(-1,1, 0.01),
@@ -49,6 +52,7 @@ Upper1E <- assign1E$fStar + 1.96 * sqrt(diag(assign1E$cov_fStar))
 Lower1E <- assign1E$fStar - 1.96 * sqrt(diag(assign1E$cov_fStar))
 
 plot(y=assign1E$fStar, assign1E$xStar, ylim=c(-2.5,2.5), type="l", lwd=3, col="darkorange")
+points(x=c(0.8, 0.4, -0.2, -0.6, -1), y=c(-0.664, 0.719, -0.94, -0.044, 0.768), pch=21, bg="black")
 lines(y=Upper1E, assign1E$xStar, col="seagreen", lwd=3)
 lines(y=Lower1E, assign1E$xStar, col="seagreen", lwd=3)
 JapanTemp <- read.delim("C:/Users/Gustav/Documents/Machine-Learning/Lab 6/JapanTemp.dat", sep="", header = TRUE)
