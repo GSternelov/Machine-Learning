@@ -1,4 +1,3 @@
-
 SqExpKernel <- function(x1, x2, hyperParam){
   K <- matrix(nrow=length(x1), ncol=length(x2))
   for (i in 1:length(x2)){
@@ -56,8 +55,6 @@ plot(y=assign1E$fStar, assign1E$xStar, ylim=c(-2.5,2.5), type="l", lwd=3, col="d
 points(x=c(0.8, 0.4, -0.2, -0.6, -1), y=c(-0.664, 0.719, -0.94, -0.044, 0.768), pch=21, bg="black")
 lines(y=Upper1E, assign1E$xStar, col="seagreen", lwd=3)
 lines(y=Lower1E, assign1E$xStar, col="seagreen", lwd=3)
-
-## Assignment 2
 JapanTemp <- read.delim("C:/Users/Gustav/Documents/Machine-Learning/Lab 6/JapanTemp.dat", sep="", header = TRUE)
 par(mfrow=c(1,3))
 SigmaVal <- c(2, 5, 10)

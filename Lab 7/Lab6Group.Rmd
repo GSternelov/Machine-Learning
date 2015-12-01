@@ -1,0 +1,268 @@
+---
+title: "Introduction to Machine Learning - Lab 6"
+author: "Gustav Sternelöv and Vuong Tran"
+date: "30 november 2015"
+output:
+  pdf_document:
+    fig_height: 3.5
+    fig_width: 6
+---
+
+# Assignment 1
+
+## (a)
+The implementation of a function that simulates from the posterior distribution *f(x)* by using the squared exponential kernel is done in two steps. In the first step a function that computes the squared exponential kernel is created. 
+The formula for the squared exponential kernel can be seen below:  
+$$K(x, x') = \sigma_f^2 \times exp(-0.5 \times(\frac{x-x'}{\iota})^2)$$
+
+The second step is to build the function *PosteriorGP*. The aim with this function is to calculate the posterior mean and variance of *f* over a grid of x-values. The two formulas used for calculating this are presented below:  
+$$\bar{f_*} = K(x_*, x)[K(x,x)+\sigma^2 l]^{-1}y$$
+$$cov(\bar{f_*}) = K(x_*, x_*) - K(x_*, x)[K(x,x)+\sigma^2 l]^{-1} K(x, x_*)$$
+
+The code that has been used to implement the functions can be seen in the appendix *R-code*.  
+
+The prior mean of *f* is assumed to be zero for all *x*, which gives the following prior distribution for *f(x)*:
+$$f(x) \sim GP(0, K(x, x'))$$  
+
+Then, the posterior guassian distribution looks as following:  
+$$f_* \mid x,y,x_* \sim N(\bar{f_*},cov(\bar{f_*})$$  
+
+```{r, echo=FALSE}
+SqExpKernel <- function(x1, x2, hyperParam){
+  K <- matrix(nrow=length(x1), ncol=length(x2))
+  for (i in 1:length(x2)){
+    K[, i] <- hyperParam[1]^2 * exp(-0.5 *( (x1-x2[i])/hyperParam[2]) ^2)
+  }
+  return(K)
+}
+PosteriorGP <- function(x, y, xStar, hyperParam, sigmaNoise){
+  # Calculates f star bar
+  fStar <- SqExpKernel(xStar, x, hyperParam) %*% solve(SqExpKernel(x, x, hyperParam)+
+                                        sigmaNoise^2*diag(length(x))) %*% y
+  # Calculates cov f star
+  cov_fStar <- SqExpKernel(xStar, xStar, hyperParam) - SqExpKernel(xStar, x, hyperParam)%*%
+    solve(SqExpKernel(x, x, hyperParam)+sigmaNoise^2*diag(length(x))) %*%
+    SqExpKernel(x, xStar, hyperParam)
+  
+  # Store all values in a list
+  val_list <- list(fStar=fStar, cov_fStar=cov_fStar, xStar=xStar)
+  
+  return(val_list)
+}
+```
+
+## (b)
+Since the noise standard deviation is assumed to be known the parameter $\sigma_n$ is set to 0.1. The prior hyperparameter $\sigma_f$ is set to 1 and the second prior hyperparameter $\iota$ is set to 0.3. Furthermore the prior is updated with one observation, *(x,y)*=(0.4, 0.719). A plot over the posterior mean of *f* over the interval *x* $\in$ [-1,1] with 95 % probability bands for *f* can be seen below. 
+```{r, echo=FALSE}
+assign1B <- PosteriorGP(x=0.4, y=0.719, xStar=seq(-1,1, 0.01), hyperParam=c(1, 0.3),
+            sigmaNoise=0.1)
+Upper1B <- assign1B$fStar + 1.96 * sqrt(diag(assign1B$cov_fStar))
+Lower1B <- assign1B$fStar - 1.96 * sqrt(diag(assign1B$cov_fStar))
+
+plot(y=assign1B$fStar, assign1B$xStar, ylim=c(-2.5,2.5), type="l", lwd=3, col="darkorange")
+points(x=0.4, y=0.719, pch=21, bg="black")
+lines(y=Upper1B, assign1B$xStar, col="seagreen", lwd=3)
+lines(y=Lower1B, assign1B$xStar, col="seagreen", lwd=3)
+```  
+  
+  We can see that the points narrow down the possibility values for where the true point could be, this is very much expected since more data leads to more estimated precision.
+  
+## (c)
+The posterior from *b)* is updated with another observation, *(x,y)*=(-0.6, -0.044).  
+```{r, echo=FALSE}
+assign1C <- PosteriorGP(x=c(0.4, -0.6), y=c(0.719, -0.044), xStar=seq(-1,1, 0.01), hyperParam=c(1, 0.3),
+                        sigmaNoise=0.1)
+Upper1C <- assign1C$fStar + 1.96 * sqrt(diag(assign1C$cov_fStar))
+Lower1C <- assign1C$fStar - 1.96 * sqrt(diag(assign1C$cov_fStar))
+
+plot(y=assign1C$fStar, assign1C$xStar, ylim=c(-2.5,2.5), type="l", lwd=3, col="darkorange")
+points(x=c(0.4, -0.6), y=c(0.719, -0.044), pch=21, bg="black")
+lines(y=Upper1C, assign1C$xStar, col="seagreen", lwd=3)
+lines(y=Lower1C, assign1C$xStar, col="seagreen", lwd=3)
+```    
+  
+  Again it can be seen that the probability bands are more narrow around the observed values, and that they are quite wide for the other values. 
+  
+## (d) 
+In *d)* the number of observations rises to five, resulting in the following plot over the posterior mean of *f* and its 95 % probability intervals.  
+```{r, echo=FALSE}
+assign1D <- PosteriorGP(x=c(0.8, 0.4, -0.2, -0.6, -1), y=c(-0.664, 0.719, -0.94, -0.044, 0.768), xStar=seq(-1,1, 0.01),
+                        hyperParam=c(1, 0.3),sigmaNoise=0.1)
+Upper1D <- assign1D$fStar + 1.96 * sqrt(diag(assign1D$cov_fStar))
+Lower1D <- assign1D$fStar - 1.96 * sqrt(diag(assign1D$cov_fStar))
+
+plot(y=assign1D$fStar, assign1D$xStar, ylim=c(-2.5,2.5),type="l", lwd=3, col="darkorange")
+points(x=c(0.8, 0.4, -0.2, -0.6, -1), y=c(-0.664, 0.719, -0.94, -0.044, 0.768), pch=21, bg="black")
+lines(y=Upper1D, assign1D$xStar, col="seagreen", lwd=3)
+lines(y=Lower1D, assign1D$xStar, col="seagreen", lwd=3)
+```
+  
+Compared to the plots in *b)* and *c)*, the curve for the posterior mean of *f* is less straight/ more curvaceous than before. The probability bands has also changed and are thanks to the rise from two to five observed values more narrow, but also quite wiggly.
+
+## (e)
+The hyperparameter $\iota$ is now set to 1. The other parameters are unchanged and the same observations as in *d)* are used.  
+```{r, echo=FALSE}
+assign1E <- PosteriorGP(x=c(0.8, 0.4, -0.2, -0.6, -1), y=c(-0.664, 0.719, -0.94, -0.044, 0.768), xStar=seq(-1,1, 0.01),
+                        hyperParam=c(1, 1),sigmaNoise=0.1)
+Upper1E <- assign1E$fStar + 1.96 * sqrt(diag(assign1E$cov_fStar))
+Lower1E <- assign1E$fStar - 1.96 * sqrt(diag(assign1E$cov_fStar))
+
+plot(y=assign1E$fStar, assign1E$xStar, ylim=c(-2.5,2.5), type="l", lwd=3, col="darkorange")
+points(x=c(0.8, 0.4, -0.2, -0.6, -1), y=c(-0.664, 0.719, -0.94, -0.044, 0.768), pch=21, bg="black")
+lines(y=Upper1E, assign1E$xStar, col="seagreen", lwd=3)
+lines(y=Lower1E, assign1E$xStar, col="seagreen", lwd=3)
+```
+  
+  As we can see in the plot above, letting the length scale value increase to one make our fitted posterior mean really smooth and narrows down the 95 % probability bands quite much, maybe even to much since now we have three true observations that are outside the probability bands.
+  
+# Assignment 2
+The implemented functions in assignment 1 are now tested on the data set *JapanTemp*. This data set contains information about the daily temperatures during a year for some place in Japan. What that is mainly investigated in this assignment is the effect on the posterior for different values of the parameters $\sigma_n$, $\sigma_f$, and $\iota$.  
+
+We started with plotting the data by using our GP-function with the prior hyper parameters {$\sigma_f$=1, $\iota$=0.3} and $\sigma_n$= 0.1 to extract the fitted point estimation. (this will be the “original” plot that we will make our comparisons against later on)  
+
+```{r, echo=FALSE, fig.height=3.5, fig.width=7}
+JapanTemp <- read.delim("C:/Users/Gustav/Documents/Machine-Learning/Lab 6/JapanTemp.dat", sep="", header = TRUE)
+par(mfrow=c(1,1))
+xGrid2<-seq(0,1,length=365)
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(1,0.3),sigmaNoise =0.1)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(1,0.3),S_N =0.1",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+par(mfrow=c(1,1))
+```
+
+As one can see at the plot above, the fitted line and its 95 % probability band adapt really well for this data.  
+Now, we will plot new fitted line and probability bands with different value for the hyper parameters and $\sigma_n$. The changes will have this  structure, one of the parameter will be held as a constant while the rest of them first increased at same time, then decreased at the same time, and after that one parameter will decrease while the other parameter increase and at last the reverse.
+
+```{r, echo=FALSE, fig.height=6}
+JapanTemp <- read.delim("C:/Users/Gustav/Documents/Machine-Learning/Lab 6/JapanTemp.dat", sep="", header = TRUE)
+par(mfrow=c(2,2))
+xGrid2<-seq(0,1,length=365)
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(10,0.3),sigmaNoise =1)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(10,0.3),S_N =1",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(0.1,0.3),sigmaNoise =0.01)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(0.1,0.3),S_N =0.01",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(0.1,0.3),sigmaNoise =1)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(0.1,0.3),S_N =1",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(10,0.3),sigmaNoise =0.01)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(10,0.3),S_N =0.01",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+par(mfrow=c(1,1))
+```
+
+We started out with letting the length scale ($\iota$) being a constant equal to 0.3 and variating both the sigmas. The influence that $\sigma_n$ have is easy to see, when increasing the $\sigma_n$ parameter we get a wider probability band and while decreasing it we get narrower band. The effect of changing the value of $\sigma_f$ looks quite similar to the effect of changing the value of $\sigma_n$ with the difference that the probability bands remains practically unchanged. Also higher values of $\sigma_f$ seem to give better fits with more flexible curves, compared to $\sigma_n$ where lower values resulted in better fits.  
+
+
+```{r, echo=FALSE, fig.height=6}
+JapanTemp <- read.delim("C:/Users/Gustav/Documents/Machine-Learning/Lab 6/JapanTemp.dat", sep="", header = TRUE)
+par(mfrow=c(2,2))
+xGrid2<-seq(0,1,length=365)
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(1,1.5),sigmaNoise =1)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(1,1.5),S_N =1",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(1,0.06),sigmaNoise =0.01)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(1,0.06),S_N =0.01",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(1,0.06),sigmaNoise =1)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(1,0.06),S_N =1",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(1,1.5),sigmaNoise =0.01)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(1,1.5),S_N =0.01",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+par(mfrow=c(1,1))
+```
+
+As we hold the $\sigma_f$ as a constant equal to one and variating the rest we can see that the length scale change the smoothness of the fitted curve. Increasing the length scale value leads to smoother lines, decreasing length scale value leads to more jagged curves. As like before, when increasing the $\sigma_n$ parameter we get a wider probability band and while decreasing it we get narrower band.
+
+```{r, echo=FALSE, fig.height=6}
+JapanTemp <- read.delim("C:/Users/Gustav/Documents/Machine-Learning/Lab 6/JapanTemp.dat", sep="", header = TRUE)
+par(mfrow=c(2,2))
+xGrid2<-seq(0,1,length=365)
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(10,1,5),sigmaNoise =0.1)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(10,1.5),S_N =0.1",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(0.1,0.06),sigmaNoise =0.1)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(0.1,0.06),S_N =0.1",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(0.1,1.5),sigmaNoise =0.1)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(0.1,1.5),S_N =0.1",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+test2<-PosteriorGP(x=JapanTemp$time,y=JapanTemp$temp,xStar=xGrid2,
+                   hyperParam = c(10,0.06),sigmaNoise =0.1)
+plot(xGrid2, test2[[1]], type="l",col="red",
+     main="HP= c(10,0.06),S_N =0.1",ylab="temp",xlab="year")
+points(test2[[1]]+1.96*sqrt(diag(test2[[2]])) ~ xGrid2,type="l",col="blue")
+points(test2[[1]]-1.96*sqrt(diag(test2[[2]]))~ xGrid2,type="l",col="blue")
+points(JapanTemp$temp~ xGrid2,col="yellow")
+
+par(mfrow=c(1,1))
+```
+
+The plots above have been plotted by letting the parameter $\sigma_n$ be a constant equal to 0.1 and variating the rest. The appearance of the plot above is very similar to the graph we have plotted earlier. 
+The influence of $\sigma_f$ and the parameter length scaled is quite easy to as they look just like earlier findings.  
+
+Conclusion based on the given plots:
+The influence that $\sigma_f$ has is that lower values gives more smooth curves and higher values results in more flexible curves.  The length scale parameter have great influence on the smoothness of the fitted curve while $\sigma_n$ have great influence on the width of 95 % probability band for the curve.
+If analyzing the plots more in depth, one could say that HP={$\sigma_f$=1,$\iota$=0.06},$\sigma_n$=0.01 have the same influence as HP={$\sigma_f$=10,$\iota$=0.06},$\sigma_n$=0.1. This is implying that holding $\sigma_f$ constant and decreasing $\sigma_n$ k times has same effect as holding $\sigma_n$ as costant and increasing $\sigma_f$  k times.

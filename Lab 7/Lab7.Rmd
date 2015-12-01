@@ -142,8 +142,8 @@ The residuals for the model created in *2.2* and the observed influenza values a
 ```{r, echo=FALSE}
 # 2.5
 # Residuals and influenza values plotted against time
-plot(x=as.numeric(influenza$Time), y=influenza$Influenza, pch=21, bg="red")
-points(x=influenza$Time, y=model2_2$residuals, col="blue", pch=21, bg="blue")
+plot(x=as.numeric(influenza$Time), y=model2_2$residuals, pch=21, bg="blue")
+points(x=influenza$Time, y=influenza$Influenza, col="red", pch=21, bg="red")
 ```
 The highest values of the residuals seem to be correlated to the periods of outbreaks of influenza(?)
 Shows well that the model are quite general. For years with either a low or high number of influenza outbreaks the values of the residuals becomes high. 
@@ -153,7 +153,7 @@ Next, a GAM model is fitted where mortality is described by spline functions of 
 ```{r, echo=FALSE}
 # 2.6
 # Mortality described as spline functions of year, week and influenza. 
-model2_6 <- gam(formula=Mortality ~ s(Week, k=51) + s(Year, k=8) + s(Influenza, k=84), data=influenza)
+model2_6 <- gam(formula=Mortality ~ s(Week, k=52) + s(Year, k=9) + s(Influenza, k=85), data=influenza)
 # Use output to test whether or not mortality is influenced by influenza. 
 summary(model2_6)
 ```
@@ -174,5 +174,4 @@ Overall a more flexible model than the model created in *2.2*.
 SSE2_6 <- sum((influenza$Mortality-model2_6$fitted.values)^2)
 SSE2_6
 ```
-
 

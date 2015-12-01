@@ -34,36 +34,6 @@ PiecewiseCBS <- function(data, k){
 # create matrix y
 # if x values lies inside interval, set y to mean of observed y values
 
-testData <- data.frame(x=cube$x, y =cube$y)
-y <- matrix(0, ncol=1, nrow=length(cube$x))
-g <- c(3,6)
-
-for (j in 1:length(testData[,1])){
-  if(testData[j,1] < g[1]){
-    y[j] <-  mean(subset(testData, testData$x < g[1])[,2])
-  }else{y[j] <- y[j]  }
-}
-
-for (i in 2:length(g)){
-  for (j in 1:length(testData[,1])){
-    
-    if(g[i] > g[1] & testData[j,1] < g[i] & testData[j,1] > g[i-1] ){
-      y[j] <- mean(subset(testData, testData$x >= g[i-1] & testData$x < g[i])[,2])
-    }else{y[j] <- y[j]  }
-  
-  if(testData[j,1] >= g[length(g)]){
-    y[j] <- mean(subset(testData, testData$x > g[i])[,2])
-  }else{y[j] <- y[j]  }}}
-
-YhY <- cbind(cube$y, y, cube$x)
-YhY <- YhY[order(YhY[,3]),] 
-
-plot(x=cube$x, y=cube$y, pch=21, bg="darkorange")
-points(x=YhY[,3], y=YhY[,2], col="grey", pch=21, bg="lightblue", type="b", lwd=2, cex=1.5)
-
-
-
-
 ## 1.2
 cube <- read.csv("C:/Users/Gustav/Documents/Machine-Learning/Lab 7/cube.csv", sep=";", header=TRUE)
 
@@ -99,7 +69,7 @@ summary(model2_2)
 # one year to another
 
 # Visualize the spline component
-plot(model2_2)
+plot(model2_2, col="seagreen")
 # Lower during summer, higher during winter
 
 # 2.4
@@ -133,7 +103,7 @@ points(x=influenza$Time, y=model2_2$residuals, col="blue", pch=21, bg="blue")
 
 # 2.6
 # Mortality described as spline functions of year, week and influenza. 
-model2_6 <- gam(formula=Mortality ~ s(Week, k=5) + s(Year, k=3) + s(Influenza, k=4), data=influenza)
+model2_6 <- gam(formula=Mortality ~ s(Week, k=52) + s(Year, k=9) + s(Influenza, k=85), data=influenza)
 # Plots of the splines
 par(mfrow=c(1,3))
 plot(model2_6)

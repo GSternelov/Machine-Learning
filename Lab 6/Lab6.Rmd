@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Machine Learning - Lab 6"
 author: "Gustav Sternelöv"
-date: "Thursday, November 26, 2015"
+date: "Tuesday, December 01, 2015"
 output:
   pdf_document:
     fig_height: 3.5
@@ -19,7 +19,7 @@ The second step is to build the function *PosteriorGP*. The aim with this functi
 $$\bar{f_*} = K(x_*, x)[K(x,x)+\sigma^2 l]^{-1}y$$
 $$cov(\bar{f_*}) = K(x_*, x_*) - K(x_*, x)[K(x,x)+\sigma^2 l]^{-1} K(x, x_*)$$
 
-The code that has been used to implement the functions can be seen in the appendix *R-code* at the end of the report.  
+The code that has been used to implement the functions can be seen in the appendix *R-code*.  
 
 The prior mean of *f* is assumed to be zero for all *x*, which gives the following prior distribution for *f(x)*:
 $$f(x) \sim GP(0, K(x, x'))$$  
@@ -177,9 +177,3 @@ par(mfrow=c(1,1))
 ```
 For a $\iota$ value of 0.05 the obtained curve is too flexible, it follows the observed values too well. For a little higher value, 0.30, the curve is more smooth and seem to be a quite good fit. When a even higher value is tested, 0.75, the curve instead becomes too inflexible.  
 
-
-# Appendix
-## R-code
-```{r code=readLines(knitr::purl('C:/Users/Gustav/Documents/Machine-Learning/Lab 6/Lab6.rmd', documentation = 0)), eval = FALSE}
-
-```
