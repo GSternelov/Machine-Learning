@@ -77,12 +77,14 @@ Regarding the graph over time versus influenza it can be seen the values are zer
 
 
 ## 2.2
-Report the probabilistic model...
+
 ```{r, echo=FALSE, message=FALSE}
 library(mgcv)
-model2_2 <- gam(formula=Mortality ~ Year + s(Week), data=influenza)
+model2_2 <- gam(formula=Mortality ~ Year + s(Week, k=51), data=influenza)
 ```
 
+The probabilistic expression for the model fitted in *2.2* is:  
+E(Mortality) = -680.657 + 1.233 * Year + s(Week)
 
 ## 2.3
 The predicted mortality by the fitted model in *2.2*, blue dots, is compared against the observed mortality, red dots.  
@@ -92,10 +94,9 @@ plot(x=as.numeric(influenza$Time), y=influenza$Mortality, pch=21, bg="red")
 points(x=influenza$Time, y=model2_2$fitted.values, col="blue", pch=21, bg="blue")
 
 ```  
-It seems to be a decent fit since the fitted values follows the general pattern for the mortality quite well. 
-(Although it does not capture the variation/more extreme values who changes a bit from year to year.)
+It seems to be a decent fit since the fitted values follows the general pattern for the mortality quite well. Although it also is a problem that the model is very general. A more adequate model would be one that is more flexible and has the ability to capture local changes in data.  
 
-Next the output of the GAM model is investigated. According to the output the parametric coefficient for the variable *Year* is insignificant and the non-parametric coefficient for the variable *week* is significant. Hence, there is no significant trend saying that the mortality rate changes from one year to another.  
+Next the output of the GAM model is investigated. According to the output the parametric coefficient for the variable Year and the intercept is insignificant and the non-parametric coefficient for the variable week is significant. Hence, there is no significant trend saying that the mortality rate changes from one year to another.  
 
 ```{r, echo=FALSE}
 # Investigate output
@@ -103,37 +104,36 @@ summary(model2_2)
 
 ```
 
-The spline component for the variable *Week* is visualized with the following plot.  
+The spline component for the variable Week is visualized with the following plot.  
 ```{r, echo=FALSE}
 # Visualize the spline component
 plot(model2_2)
 ```
-The plot over the spline component shows how this component affects the fitted values given by the model. For weeks at the start and at the end of the year it raises the mortality and during mid-year it lowers the mortality.  
+The plot over the spline component shows how this component affects the fitted values given by the model. For weeks at the start and at the end of the year it raises the mortality rate and during mid-year it lowers the mortality rate.  
 
-The conlcusion about the model fit is that it seem to be a decent model. The comparsion between the observed and fitted values showed that the general pattern is captured. A disadvantage is that one of the variables, the parametric coefficient for *Year*, is insignificant.  
 
 ## 2.4
-Two different adjustments are done for the model created in *2.2*. In the first case the penalty factor of the spline function(the number of knots) is set to 3 and in the second case it is set to 30. A comparison of the fitted values with the observed values is given by the plots below.  
+Two different adjustments are made for the model created in *2.2*. In the first case the number of knots for the spline function is set to 3 and in the second case it is set to 52. A comparison of the fitted values with the observed values is given by the plots below.  
 
-```{r,echo=FALSE}
+```{r,echo=FALSE, fig.height=7.5}
 # How penalty factor(k) affects the devaince. 
 # Compares for two different values of K (2, 30)
 model2_4v1 <- gam(formula=Mortality ~ Year + s(Week, k=3), data=influenza)
-model2_4v2 <- gam(formula=Mortality ~ Year + s(Week, k=30), data=influenza)
+model2_4v2 <- gam(formula=Mortality ~ Year + s(Week, k=52), data=influenza)
 # Compares fitted and original values for each case
-par(mfrow=c(1,2))
+par(mfrow=c(2,1))
 # v1
-plot(x=as.numeric(influenza$Time), y=influenza$Mortality, pch=21, bg="red")
+plot(x=as.numeric(influenza$Time), y=influenza$Mortality, pch=21, bg="red", main="k=3")
 points(x=influenza$Time, y=model2_4v1$fitted.values, col="blue", pch=21, bg="blue")
 # v2
-plot(x=as.numeric(influenza$Time), y=influenza$Mortality, pch=21, bg="red")
+plot(x=as.numeric(influenza$Time), y=influenza$Mortality, pch=21, bg="red", main = "k=52")
 points(x=influenza$Time, y=model2_4v2$fitted.values, col="blue", pch=21, bg="blue")
 par(mfrow=c(1,1))
 
 ```
-When the penalty factor (or number of knots) is low the fitted values almost looks exactly the same from year to year. For a higher value of the penalty factor a bit more of the yearly variation is captured. 
+When the number of knots is low the fitted values almost looks exactly the same from year to year. For a higher number of knots the model becomes more flexible and a bit more of the yearly variation is captured. 
 
-The relation between the penalty factor and the degrees of freedom...
+The relation between the number of knots and the degrees of freedom is that the number of degress of freedom is higher for a higher number of knots. For the model with k equal to 52 the degress of freedom is 17.87 and for the model qith k equal to 3 it is 2.36. This is because a model with a higher number of knots uses more coefficients than a model with just 3 knots. 
 
 
 ## 2.5
@@ -145,11 +145,10 @@ The residuals for the model created in *2.2* and the observed influenza values a
 plot(x=as.numeric(influenza$Time), y=model2_2$residuals, pch=21, bg="blue")
 points(x=influenza$Time, y=influenza$Influenza, col="red", pch=21, bg="red")
 ```
-The highest values of the residuals seem to be correlated to the periods of outbreaks of influenza(?)
-Shows well that the model are quite general. For years with either a low or high number of influenza outbreaks the values of the residuals becomes high. 
+The residuals seem to be correlated to the outbreaks of influenza. This correlation indicates that the variable Influenza might be useful when trying to find a model that well describes the mortality rates. 
 
 ## 2.6
-Next, a GAM model is fitted where mortality is described by spline functions of *year*, *week* and the number of confirmed cases of influenza. 
+Next, a GAM model is fitted where mortality is described by spline functions of Year, Week and the number of confirmed cases of influenza. For this model the intercept is the only parametric coefficient, all the others are non-parametric coefficients. The coefficients for both Week and outbreaks of influenza are significant, and the coefficient for Year is insignificant. Regarding the outbreaks of influenza it seems like this variable influences the mortality rate.  
 ```{r, echo=FALSE}
 # 2.6
 # Mortality described as spline functions of year, week and influenza. 
@@ -157,7 +156,6 @@ model2_6 <- gam(formula=Mortality ~ s(Week, k=52) + s(Year, k=9) + s(Influenza, 
 # Use output to test whether or not mortality is influenced by influenza. 
 summary(model2_6)
 ```
-Looks like the mortality is influenced by the outbreaks of influenza(?).  
 
 The fitted values for the created model is compared against the observed valuse for mortality. 
 ```{r, echo=FALSE}
@@ -165,13 +163,19 @@ The fitted values for the created model is compared against the observed valuse 
 plot(x=as.numeric(influenza$Time), y=influenza$Mortality, pch=21, bg="red")
 points(x=influenza$Time, y=model2_6$fitted.values, col="blue", pch=21, bg="blue")
 ```
+Compared to the model created in *2.2* this model is capable to capture more than the week to week variation. As can be seen in the plot above this model is more flexible and it manages to find at least some of the yearly variation.    
 
-The model have a hard time predicting right for the lowest mortality values durint the respective years. 
-Overall a more flexible model than the model created in *2.2*. 
-
+The SSE for the model:
 ```{r, echo=FALSE}
 # compute SSE
 SSE2_6 <- sum((influenza$Mortality-model2_6$fitted.values)^2)
 SSE2_6
+```
+
+
+# Appendix
+## R-code
+```{r code=readLines(knitr::purl('C:/Users/Gustav/Documents/Machine-Learning/Lab 7/Lab7.rmd', documentation = 0)), eval = FALSE}
+
 ```
 
