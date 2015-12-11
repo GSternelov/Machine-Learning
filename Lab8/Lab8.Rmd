@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Machine Learning - Lab 8"
 author: "Gustav Sternelöv"
-date: "Thursday, December 03, 2015"
+date: "Friday, December 11, 2015"
 output:
   pdf_document:
     fig_height: 3.5
@@ -179,6 +179,7 @@ qplot(y=LMR,x=Day, data=FruitFlySz, geom = "line", xlab="Day(standardized)",ylab
 The relationship between *LMR* and *Day* is quite different for different periods. During the first days the mortality rate is increasing rapidly. Then, during the middle of the observed time period, the mortality rate is constant a short while before it decreases a little. At the end of the observed time period the mortality rate increases, not as fast as in the beginning but still rather fast.  
 
 ## 2.3
+A multilayer perceptron network with a single hidden neuron, *tanh* as the activation function ,a maximum number of iterations that is $1*10^6$ and a treshold for stopping the fitting of the model at *0.1*. 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 library(neuralnet)
 set.seed(7235)
@@ -228,7 +229,7 @@ plot(y=FruitFlySz$LMR, x=FruitFlySz$Day, type="l", lwd=2)
 points(x=FruitFlySz$Day, unlist(network2_4$net.result), col="darkorange", type="l",
        lwd=2)
 ```
-Compared to the fitted values for the model in *2.3*, the new model with two hidden neurons seem to be better. The use of two hidden neurons makes the model more flexible than before. That is why more of the general pattern in the data is captured with the new model. However, even if these model is better than the former model, there is still some room for improvement.  
+Compared to the fitted values for the model in *2.3*, the new model with two hidden neurons seem to be better. The use of two hidden neurons makes the model more flexible than before. That is why more of the general pattern in the data is captured with the new model. However, even if these model is better than the former model there is still some room for improvement.  
 
 ## 2.5
 
@@ -261,6 +262,9 @@ points(x=FruitFlySz$Day, unlist(network2_5b$net.result), col="darkorange", type=
 ```
 
 ### Comparison of the models
+Both models are good fits to the data set, especially the first model with four hidden neurons seem to be a really good fit. This visual conclusion is also confirmed by the number of iterations and the error which is lower for the model with four hidden neurons.  
 
+When comparing the model in *2.4* with two hidden neurons and the model with four hidden neurons it is evident that a more complex model is a better fit to this data. However, when a even more complex model with five hidden neurons is fitted it does not result in a better fit. 
 
+It seems like a complex model is needed, but not a too complex model. A too simple model lacks flexibility and is therefore not a good fit. A too complex model 
 

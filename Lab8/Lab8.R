@@ -97,7 +97,7 @@ MisClass <- 1 - sum(diag(confMat)) / sum(confMat)
 
 ### Assignment 2
 ## 2.1
-FruitFly <- read.csv2("C:/Users/Gustav/Documents/Machine-Learning/Lab 8/mortality.csv", sep=";")
+FruitFly <- read.csv2("C:/Users/Gustav/Documents/Machine-Learning/Lab8/mortality.csv", sep=";")
 DaySz <- data.frame(Day =scale(FruitFly$Day, scale = TRUE, center=TRUE))
 FruitFlySz <- data.frame(LMR = FruitFly$LMR, Day = DaySz)
 
