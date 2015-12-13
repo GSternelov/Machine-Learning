@@ -8,18 +8,18 @@ spl <- function(x, y, lambda, weights, until){
   MisClass2 <- 1
   # Loop that runs until stopping condition is met. 
   while(abs(MisClass2 - MisClass1) > until){
-    # The misclass value for the latest iteration is saved for comparison with
-    # the next misclass value
-    MisClass2 <- MisClass1
     for(i in 1:nrow(x)){
       # The weights are multiplied with i:th row
       linComb <- sum(weights * x[i, ])
       # Uses the sign function to classify the observation
       yHat[i] <- sign(linComb)
       # Updates the weights
-      weights <- weights + 0.1*(y[i] - yHat[i]) * x[i, ]
+      weights <- weights + lambda*(y[i] - yHat[i]) * x[i, ]
     }
     # Calculates the misclassification value
+    # The misclass value for the latest iteration is saved for comparison with
+    # the next misclass value
+    MisClass2 <- MisClass1
     confMat <- table(yHat, y)
     MisClass1 <- 1 - sum(diag(confMat)) / sum(confMat) 
   }
@@ -56,7 +56,6 @@ for(i in 1:nrow(testInput)){
 }
 confMatTest <- table(yHatTest, test$Spam)
 MisClass3 <- 1 - sum(diag(confMatTest)) / sum(confMatTest) 
-testSPL$miscTr
 MisClass3
 
 ## 1.4
